@@ -108,6 +108,11 @@ options:
     - **Optional:** Use this asset url instead of the ``publicPath``.
     - You would set this to your full domain name or CDN in production.
 
+- ``WEBPACK_MANIFEST_ASSETS_ONLY``: default ``False``
+    - **Optional:** Assume the manifest file only contains the assets, instead of them
+    being inside an "assets" object.
+
+
 Learn more
 ^^^^^^^^^^
 
