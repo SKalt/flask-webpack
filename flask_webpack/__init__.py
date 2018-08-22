@@ -4,6 +4,7 @@ from flask import current_app
 
 
 class Webpack(object):
+
     def __init__(self, app=None):
         self.app = app
 
@@ -20,27 +21,29 @@ class Webpack(object):
         """
 
         # Setup a few sane defaults.
-        app.config.setdefault('WEBPACK_MANIFEST_PATH',
-                              '/tmp/themostridiculousimpossiblepathtonotexist')
-        app.config.setdefault('WEBPACK_ASSETS_URL', None)
+        app.config.setdefault(
+            "WEBPACK_MANIFEST_PATH",
+            "/tmp/themostridiculousimpossiblepathtonotexist",
+        )
+        app.config.setdefault("WEBPACK_ASSETS_URL", None)
 
         self._set_asset_paths(app)
 
         # We only want to refresh the webpack stats in development mode,
         # not everyone sets this setting, so let's assume it's production.
-        if app.config.get('DEBUG', False):
+        if app.config.get("DEBUG", False):
             app.before_request(self._refresh_webpack_stats)
 
-        if hasattr(app, 'add_template_global'):
+        if hasattr(app, "add_template_global"):
             app.add_template_global(self.javascript_tag)
             app.add_template_global(self.stylesheet_tag)
             app.add_template_global(self.asset_url_for)
         else:
             # Flask < 0.10
             ctx = {
-                'javascript_tag': self.javascript_tag,
-                'stylesheet_tag': self.stylesheet_tag,
-                'asset_url_for': self.asset_url_for
+                "javascript_tag": self.javascript_tag,
+                "stylesheet_tag": self.stylesheet_tag,
+                "asset_url_for": self.asset_url_for,
             }
             app.context_processor(lambda: ctx)
 
@@ -52,25 +55,27 @@ class Webpack(object):
         :param app: Flask application
         :return: None
         """
-        webpack_stats = app.config['WEBPACK_MANIFEST_PATH']
+        webpack_stats = app.config["WEBPACK_MANIFEST_PATH"]
 
         try:
-            with app.open_resource(webpack_stats, 'r') as stats_json:
+            with app.open_resource(webpack_stats, "r") as stats_json:
                 stats = json.load(stats_json)
-                public_path = '/'
+                public_path = "/"
 
-                if app.config.get('WEBPACK_MANIFEST_ASSETS_ONLY') is True:
+                if app.config.get("WEBPACK_MANIFEST_ASSETS_ONLY") is True:
                     self.assets = stats
                 else:
-                    self.assets = stats['assets']
-                    public_path = stats.get('publicPath') or public_path
+                    self.assets = stats["assets"]
+                    public_path = stats.get("publicPath") or public_path
 
-                self.assets_url = (app.config.get('WEBPACK_ASSETS_URL')
-                                   or public_path)
+                self.assets_url = (
+                    app.config.get("WEBPACK_ASSETS_URL") or public_path
+                )
         except IOError:
             raise RuntimeError(
                 "Flask-Webpack requires 'WEBPACK_MANIFEST_PATH' to be set and "
-                "it must point to a valid json file.")
+                "it must point to a valid json file."
+            )
 
     def _refresh_webpack_stats(self):
         """
@@ -91,11 +96,11 @@ class Webpack(object):
         tags = []
 
         for arg in args:
-            asset_path = self.asset_url_for('{0}.js'.format(arg))
+            asset_path = self.asset_url_for("{0}.js".format(arg))
             if asset_path:
                 tags.append('<script src="{0}"></script>'.format(asset_path))
 
-        return '\n'.join(tags)
+        return "\n".join(tags)
 
     def stylesheet_tag(self, *args):
         """
@@ -107,12 +112,13 @@ class Webpack(object):
         tags = []
 
         for arg in args:
-            asset_path = self.asset_url_for('{0}.css'.format(arg))
+            asset_path = self.asset_url_for("{0}.css".format(arg))
             if asset_path:
                 tags.append(
-                    '<link rel="stylesheet" href="{0}">'.format(asset_path))
+                    '<link rel="stylesheet" href="{0}">'.format(asset_path)
+                )
 
-        return '\n'.join(tags)
+        return "\n".join(tags)
 
     def asset_url_for(self, asset):
         """
@@ -123,10 +129,10 @@ class Webpack(object):
         :type asset: str
         :return: Asset path or None if not found
         """
-        if '//' in asset:
+        if "//" in asset:
             return asset
 
         if asset not in self.assets:
             return None
 
-        return '{0}{1}'.format(self.assets_url, self.assets[asset])
+        return "{0}{1}".format(self.assets_url, self.assets[asset])
