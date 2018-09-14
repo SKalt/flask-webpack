@@ -6,6 +6,7 @@ from flask import current_app
 class Webpack(object):
 
     def __init__(self, app=None):
+        """Internalize the app context and add helpers to the app."""
         self.app = app
 
         if app is not None:
@@ -14,7 +15,7 @@ class Webpack(object):
     def init_app(self, app):
         """
         Mutate the application passed in as explained here:
-        http://flask.pocoo.org/docs/0.10/extensiondev/
+        http://flask.pocoo.org/docs/0.12/extensiondev/
 
         :param app: Flask application
         :return: None
