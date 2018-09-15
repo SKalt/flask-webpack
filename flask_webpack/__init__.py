@@ -5,13 +5,10 @@ from jinja2 import Markup
 from logging import getLevelName
 
 
-def noop(*args, **kwargs):  # type: (Any) -> None
-    pass
+def _noop(*args, **kwargs): pass
 
 
-def _warn_missing(
-    missing, type_info="asset", level="ERROR", log=noop
-):  # (str, str, Union[str, int], Callable[[Any], None]) -> str
+def _warn_missing(missing, type_info="asset", level="ERROR", log=_noop):
     message = "[flask-webpack] missing {type} {missing}".format(
         type_info=type_info, missing=missing
     )
@@ -19,7 +16,7 @@ def _warn_missing(
 
     def js_warn(fn, msg):
         msg = msg.replace('"', '\\"')  # escape double qotes for JS safety
-        return Markup('<script>{fn}("{msg}")</script>'.format(fn, msg))
+        return '<script>{fn}("{msg}")</script>'.format(fn, msg)
 
     if level == "DEBUG":
         return Markup("<!-- {} -->".format(message.replace("-->", "")))
@@ -32,20 +29,22 @@ def _warn_missing(
     elif level == "CRITICAL":
         return js_warn("alert", message)
     else:
-        return Markup("")
+        return ""
 
 
 class Webpack(object):
-    def __init__(self, app=None):  # type: (Any, Optional['flask']) -> None
+    def __init__(self, app=None, assets_url=None,  **assets):
         """Internalize the app context and add helpers to the app."""
         self.app = app
+        self.assets_url = assets_url
+        self.assets = assets
         if app is not None:
             self.init_app(app)
         else:
             self.log_level = "ERROR"
-            self.logger = noop
+            self.log = _noop
 
-    def init_app(self, app):  # type: (Any, Any) -> None
+    def init_app(self, app):
         """
         Mutate the application passed in as explained here:
         http://flask.pocoo.org/docs/0.12/extensiondev/
@@ -73,7 +72,7 @@ class Webpack(object):
             "WEBPACK_LOG_LEVEL", "DEBUG" if debug else "ERROR"
         )
 
-        def log(message):  # type (str) -> None
+        def log(message):
             app.logger.log(getLevelName(log_level), message)
 
         if log_level:
@@ -142,7 +141,7 @@ class Webpack(object):
             missing, type_info, level=self.log_level, log=self.log
         )
 
-    def javascript_tag(self, *args):  # type: (Any, str) -> Markup
+    def javascript_tag(self, *args):
         """
         Convenience tag to output 1 or more javascript tags.
 
@@ -161,7 +160,7 @@ class Webpack(object):
                 tags.append(self._warn_missing(arg, "script"))
         return "\n".join(tags)
 
-    def stylesheet_tag(self, *args):  # type: (Any, str) -> Markup
+    def stylesheet_tag(self, *args):
         """
         Convenience tag to output 1 or more stylesheet tags.
 
@@ -181,9 +180,9 @@ class Webpack(object):
             else:
                 tags.append(self._warn_missing(arg, 'stylesheet'))
 
-        return "\n".join(tags)
+        return Markup("\n".join(tags))
 
-    def asset_url_for(self, asset):  # type: (Any, str) -> str
+    def asset_url_for(self, asset):
         """
         Lookup the hashed asset path of a file name unless it starts with
         something that resembles a web address, then take it as is.

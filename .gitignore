@@ -47,3 +47,6 @@ docs/_build/
 *.tmproj
 *.tmproject
 tmtags
+
+# type checking
+.mypy_cache
