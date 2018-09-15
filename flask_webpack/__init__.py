@@ -120,10 +120,13 @@ class Webpack(object):
                         app.config.get("WEBPACK_ASSETS_URL") or public_path
                     )
             except IOError:
-                self.log(
+                message = (
                     "[Flask-Webpack] WEBPACK_MANIFEST_PATH "
                     "{} must point to a valid json file.".format(webpack_stats)
                 )
+                self.log(message)
+                if self.log_level == 'ERROR':
+                    raise RuntimeError(message)
 
     def _refresh_webpack_stats(self):
         """
@@ -135,8 +138,9 @@ class Webpack(object):
         self._set_asset_paths(current_app)
 
     def _warn_missing(self, missing, type_info="asset"):
-        level = self.log_level or "ERROR"
-        return _warn_missing(missing, type_info, level=level, log=self.log)
+        return _warn_missing(
+            missing, type_info, level=self.log_level, log=self.log
+        )
 
     def javascript_tag(self, *args):  # type: (Any, str) -> Markup
         """
