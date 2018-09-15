@@ -1,18 +1,51 @@
 import json
 
 from flask import current_app
+from jinja2 import Markup
+from logging import getLevelName
+
+
+def noop(*args, **kwargs):  # type: (Any) -> None
+    pass
+
+
+def _warn_missing(
+    missing, type_info="asset", level="ERROR", log=noop
+):  # (str, str, Union[str, int], Callable[[Any], None]) -> str
+    message = "[flask-webpack] missing {type} {missing}".format(
+        type_info=type_info, missing=missing
+    )
+    log(message)
+
+    def js_warn(fn, msg):
+        msg = msg.replace('"', '\\"')  # escape double qotes for JS safety
+        return Markup('<script>{fn}("{msg}")</script>'.format(fn, msg))
+
+    if level == "DEBUG":
+        return Markup("<!-- {} -->".format(message.replace("-->", "")))
+    elif level == "INFO":
+        return js_warn("console.info", message)
+    elif level == "WARNING":
+        return js_warn("console.warn", message)
+    elif level == "ERROR":
+        return js_warn("console.error", message)
+    elif level == "CRITICAL":
+        return js_warn("alert", message)
+    else:
+        return Markup("")
 
 
 class Webpack(object):
-
-    def __init__(self, app=None):
+    def __init__(self, app=None):  # type: (Any, Optional['flask']) -> None
         """Internalize the app context and add helpers to the app."""
         self.app = app
-
         if app is not None:
             self.init_app(app)
+        else:
+            self.log_level = "ERROR"
+            self.logger = noop
 
-    def init_app(self, app):
+    def init_app(self, app):  # type: (Any, Any) -> None
         """
         Mutate the application passed in as explained here:
         http://flask.pocoo.org/docs/0.12/extensiondev/
@@ -27,13 +60,25 @@ class Webpack(object):
             "/tmp/themostridiculousimpossiblepathtonotexist",
         )
         app.config.setdefault("WEBPACK_ASSETS_URL", None)
-
         self._set_asset_paths(app)
 
         # We only want to refresh the webpack stats in development mode,
         # not everyone sets this setting, so let's assume it's production.
-        if app.config.get("DEBUG", False):
+        debug = app.config.get("DEBUG", False)
+        if debug:
             app.before_request(self._refresh_webpack_stats)
+            self.log = app.logger.log(getLevelName("ERROR"))
+
+        log_level = app.config.get(
+            "WEBPACK_LOG_LEVEL", "DEBUG" if debug else "ERROR"
+        )
+
+        def log(message):  # type (str) -> None
+            app.logger.log(getLevelName(log_level), message)
+
+        if log_level:
+            self.log_level = log_level
+            self.log = log
 
         if hasattr(app, "add_template_global"):
             app.add_template_global(self.javascript_tag)
@@ -87,7 +132,11 @@ class Webpack(object):
         """
         self._set_asset_paths(current_app)
 
-    def javascript_tag(self, *args):
+    def _warn_missing(self, missing, type_info="asset"):
+        level = self.log_level or "ERROR"
+        return _warn_missing(missing, type_info, level=level, log=self.log)
+
+    def javascript_tag(self, *args):  # type: (Any, str) -> Markup
         """
         Convenience tag to output 1 or more javascript tags.
 
@@ -97,13 +146,16 @@ class Webpack(object):
         tags = []
 
         for arg in args:
-            asset_path = self.asset_url_for("{0}.js".format(arg))
+            asset_path = self.asset_url_for("{}.js".format(arg))
             if asset_path:
-                tags.append('<script src="{0}"></script>'.format(asset_path))
-
+                tags.append(
+                    Markup('<script src="{}"></script>'.format(asset_path))
+                )
+            else:
+                tags.append(self._warn_missing(arg, "script"))
         return "\n".join(tags)
 
-    def stylesheet_tag(self, *args):
+    def stylesheet_tag(self, *args):  # type: (Any, str) -> Markup
         """
         Convenience tag to output 1 or more stylesheet tags.
 
@@ -116,12 +168,16 @@ class Webpack(object):
             asset_path = self.asset_url_for("{0}.css".format(arg))
             if asset_path:
                 tags.append(
-                    '<link rel="stylesheet" href="{0}">'.format(asset_path)
+                    Markup(
+                        '<link rel="stylesheet" href="{0}">'.format(asset_path)
+                    )
                 )
+            else:
+                tags.append(self._warn_missing(arg, 'stylesheet'))
 
         return "\n".join(tags)
 
-    def asset_url_for(self, asset):
+    def asset_url_for(self, asset):  # type: (Any, str) -> str
         """
         Lookup the hashed asset path of a file name unless it starts with
         something that resembles a web address, then take it as is.
@@ -130,7 +186,7 @@ class Webpack(object):
         :type asset: str
         :return: Asset path or None if not found
         """
-        if "//" in asset:
+        if asset[0:2] == "//":
             return asset
 
         if asset not in self.assets:
