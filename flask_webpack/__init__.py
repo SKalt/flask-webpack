@@ -101,27 +101,29 @@ class Webpack(object):
         :param app: Flask application
         :return: None
         """
-        webpack_stats = app.config["WEBPACK_MANIFEST_PATH"]
+        webpack_stats = app.config.get("WEBPACK_MANIFEST_PATH")
+        if webpack_stats is None:
+            self.log("[Flask-Webpack] 'WEBPACK_MANIFEST_PATH' is not set")
+        else:
+            try:
+                with app.open_resource(webpack_stats, "r") as stats_json:
+                    stats = json.load(stats_json)
+                    public_path = "/"
 
-        try:
-            with app.open_resource(webpack_stats, "r") as stats_json:
-                stats = json.load(stats_json)
-                public_path = "/"
+                    if app.config.get("WEBPACK_MANIFEST_ASSETS_ONLY") is True:
+                        self.assets = stats
+                    else:
+                        self.assets = stats["assets"]
+                        public_path = stats.get("publicPath") or public_path
 
-                if app.config.get("WEBPACK_MANIFEST_ASSETS_ONLY") is True:
-                    self.assets = stats
-                else:
-                    self.assets = stats["assets"]
-                    public_path = stats.get("publicPath") or public_path
-
-                self.assets_url = (
-                    app.config.get("WEBPACK_ASSETS_URL") or public_path
+                    self.assets_url = (
+                        app.config.get("WEBPACK_ASSETS_URL") or public_path
+                    )
+            except IOError:
+                self.log(
+                    "[Flask-Webpack] WEBPACK_MANIFEST_PATH "
+                    "{} must point to a valid json file.".format(webpack_stats)
                 )
-        except IOError:
-            raise RuntimeError(
-                "Flask-Webpack requires 'WEBPACK_MANIFEST_PATH' to be set and "
-                "it must point to a valid json file."
-            )
 
     def _refresh_webpack_stats(self):
         """
