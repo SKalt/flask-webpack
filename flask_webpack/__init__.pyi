@@ -1,25 +1,30 @@
-import json
+# import json
 
-from flask import current_app
 from jinja2 import Markup
-from logging import getLevelName
-from typing import Any, Union, Optional
+from typing import (
+    Callable,
+    Union,
+    Optional,
+    TypeVar,
+)
+App = TypeVar('App')  # a flask or quart app
+Whatev = Union[None, str, bytes, int]
 
 
-def _noop(*args: Any, **kwargs: Any) -> None: ...
+def _noop(*args: Whatev, **kwargs: Whatev) -> None: ...
 
 
 def _warn_missing(
     missing: str,
     type_info: str="asset",
     level: str="ERROR",
-    log: Callable[[Any], None]=_noop
+    log: Callable[[Whatev], None]=_noop
 ) -> str: ...
 
 
 class Webpack(object):
     def __init__(
-        self: Any, app: Any=None, assets_url: Optional[str]=None,
+        self, app: Optional[App]=None, assets_url: Optional[str]=None,
         **assets: str
     )-> None:
         """Internalize the app context and add helpers to the app."""
@@ -32,18 +37,18 @@ class Webpack(object):
             self.log_level = "ERROR"
             self.log = _noop
 
-    def init_app(self: Any, app: Any) -> None: ...
+    def init_app(self, app: App) -> None: ...
 
-    def _set_asset_paths(self: Any, app: Any) -> None: ...
+    def _set_asset_paths(self, app: App) -> None: ...
 
-    def _refresh_webpack_stats(self: Any) -> None:
+    def _refresh_webpack_stats(self) -> None: ...
 
     def _warn_missing(
-        self: Any, missing: str, type_info: str="asset"
+        self, missing: str, type_info: str="asset"
     ) -> None: ...
 
-    def javascript_tag(self: Any, *args: str) -> Markup: ...
+    def javascript_tag(self, *args: str) -> Markup: ...
 
-    def stylesheet_tag(self: Any, *args: str) -> Markup:
+    def stylesheet_tag(self, *args: str) -> Markup: ...
 
     def asset_url_for(self, asset: str) -> str: ...
