@@ -5,7 +5,15 @@ from jinja2 import Markup
 from logging import getLevelName
 
 
-def _noop(*args, **kwargs): pass
+def _noop(*args, **kwargs):
+    pass
+
+
+def _markup_kvp(**attrs):
+    return " ".join([
+        key if type(value) is bool and value else '{}="{}"'.format(key, value)
+        for key, value in attrs.items()
+    ])
 
 
 def _warn_missing(missing, type_info="asset", level="ERROR", log=_noop):
@@ -141,7 +149,7 @@ class Webpack(object):
             missing, type_info, level=self.log_level, log=self.log
         )
 
-    def javascript_tag(self, *args):
+    def javascript_tag(self, *args, **attrs):
         """
         Convenience tag to output 1 or more javascript tags.
 
@@ -154,13 +162,17 @@ class Webpack(object):
             asset_path = self.asset_url_for("{}.js".format(arg))
             if asset_path:
                 tags.append(
-                    Markup('<script src="{}"></script>'.format(asset_path))
+                    Markup('<script src="{}" {}></script>'.format(
+                        asset_path,
+                        attrs
+                    )
+                    )
                 )
             else:
                 tags.append(self._warn_missing(arg, "script"))
         return "\n".join(tags)
 
-    def stylesheet_tag(self, *args):
+    def stylesheet_tag(self, *args, **attrs):
         """
         Convenience tag to output 1 or more stylesheet tags.
 
@@ -174,7 +186,10 @@ class Webpack(object):
             if asset_path:
                 tags.append(
                     Markup(
-                        '<link rel="stylesheet" href="{0}">'.format(asset_path)
+                        '<link rel="stylesheet" href="{0}">'.format(
+                            asset_path,
+                            _markup_kvp(attrs)
+                        )
                     )
                 )
             else:

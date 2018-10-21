@@ -8,34 +8,31 @@ from typing import (
     TypeVar,
 )
 App = TypeVar('App')  # a flask or quart app
-Whatev = Union[None, str, bytes, int]
+_Whatev = Union[None, str, bytes, int]
 
 
-def _noop(*args: Whatev, **kwargs: Whatev) -> None: ...
+def _noop(*args: _Whatev, **kwargs: _Whatev) -> None: ...
+
+
+def _markup_kvp(**attrs: Optional[Union[bool, str]]) -> str: ...
 
 
 def _warn_missing(
     missing: str,
     type_info: str="asset",
     level: str="ERROR",
-    log: Callable[[Whatev], None]=_noop
+    log: Callable[[_Whatev], None]=_noop
 ) -> str: ...
 
 
 class Webpack(object):
     def __init__(
-        self, app: Optional[App]=None, assets_url: Optional[str]=None,
+        self,
+        app: Optional[App]=None,
+        assets_url: Optional[str]=None,
         **assets: str
     )-> None:
-        """Internalize the app context and add helpers to the app."""
-        self.app = app
-        self.assets_url = assets_url
-        self.assets = assets
-        if app is not None:
-            self.init_app(app)
-        else:
-            self.log_level = "ERROR"
-            self.log = _noop
+        ...
 
     def init_app(self, app: App) -> None: ...
 
@@ -44,7 +41,9 @@ class Webpack(object):
     def _refresh_webpack_stats(self) -> None: ...
 
     def _warn_missing(
-        self, missing: str, type_info: str="asset"
+        self,
+        missing: str,
+        type_info: str="asset"
     ) -> None: ...
 
     def javascript_tag(self, *args: str) -> Markup: ...
