@@ -1,0 +1,8 @@
+{
+  "source_directories": [
+    "flask_webpack"
+  ],
+  "do_not_check": [
+    "flask_webpack/tests/**"
+  ]
+}

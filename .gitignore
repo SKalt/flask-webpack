@@ -6,7 +6,7 @@ __pycache__/
 *.so
 
 # Distribution / packaging
-flask_webpack/tests/test_app/node_modules/
+flask_webpack/tests/test_app*/node_modules/
 bin/
 develop-eggs/
 dist/

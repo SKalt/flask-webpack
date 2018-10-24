@@ -1,13 +1,13 @@
 # import json
-
+from flask import Flask
 from jinja2 import Markup
 from typing import (
     Callable,
     Union,
     Optional,
-    TypeVar,
+    # TypeVar,
 )
-App = TypeVar('App')  # a flask or quart app
+
 _Whatev = Union[None, str, bytes, int]
 
 
@@ -28,15 +28,15 @@ def _warn_missing(
 class Webpack(object):
     def __init__(
         self,
-        app: Optional[App]=None,
+        app: Optional[Flask]=None,
         assets_url: Optional[str]=None,
         **assets: str
     )-> None:
         ...
 
-    def init_app(self, app: App) -> None: ...
+    def init_app(self, app: Flask) -> None: ...
 
-    def _set_asset_paths(self, app: App) -> None: ...
+    def _set_asset_paths(self, app: Flask) -> None: ...
 
     def _refresh_webpack_stats(self) -> None: ...
 
