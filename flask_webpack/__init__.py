@@ -10,21 +10,24 @@ def _noop(*args, **kwargs):
 
 
 def _markup_kvp(**attrs):
-    return " ".join([
-        key if type(value) is bool and value else '{}="{}"'.format(key, value)
-        for key, value in attrs.items()
-    ])
+    return " ".join(
+        [
+            key if value is True else '{}="{}"'.format(key, value)
+            for key, value in attrs.items()
+            if value is not False
+        ]
+    )
 
 
 def _warn_missing(missing, type_info="asset", level="ERROR", log=_noop):
-    message = "[flask-webpack] missing {type} {missing}".format(
+    message = "[flask-webpack] missing {type_info} {missing}".format(
         type_info=type_info, missing=missing
     )
     log(message)
 
     def js_warn(fn, msg):
         msg = msg.replace('"', '\\"')  # escape double qotes for JS safety
-        return '<script>{fn}("{msg}")</script>'.format(fn, msg)
+        return '<script>{fn}("{msg}")</script>'.format(fn=fn, msg=msg)
 
     if level == "DEBUG":
         return Markup("<!-- {} -->".format(message.replace("-->", "")))
@@ -41,7 +44,7 @@ def _warn_missing(missing, type_info="asset", level="ERROR", log=_noop):
 
 
 class Webpack(object):
-    def __init__(self, app=None, assets_url=None,  **assets):
+    def __init__(self, app=None, assets_url=None, **assets):
         """Internalize the app context and add helpers to the app."""
         self.app = app
         self.assets_url = assets_url
@@ -132,7 +135,7 @@ class Webpack(object):
                     "{} must point to a valid json file.".format(webpack_stats)
                 )
                 self.log(message)
-                if self.log_level == 'ERROR':
+                if self.log_level == "ERROR":
                     raise RuntimeError(message)
 
     def _refresh_webpack_stats(self):
@@ -162,10 +165,10 @@ class Webpack(object):
             asset_path = self.asset_url_for("{}.js".format(arg))
             if asset_path:
                 tags.append(
-                    Markup('<script src="{}" {}></script>'.format(
-                        asset_path,
-                        attrs
-                    )
+                    Markup(
+                        '<script src="{}" {}></script>'.format(
+                            asset_path, attrs
+                        )
                     )
                 )
             else:
@@ -187,13 +190,12 @@ class Webpack(object):
                 tags.append(
                     Markup(
                         '<link rel="stylesheet" href="{0}">'.format(
-                            asset_path,
-                            _markup_kvp(attrs)
+                            asset_path, _markup_kvp(attrs)
                         )
                     )
                 )
             else:
-                tags.append(self._warn_missing(arg, 'stylesheet'))
+                tags.append(self._warn_missing(arg, "stylesheet"))
 
         return Markup("\n".join(tags))
 
@@ -206,7 +208,7 @@ class Webpack(object):
         :type asset: str
         :return: Asset path or None if not found
         """
-        if asset[0:2] == "//":
+        if "//" in asset:
             return asset
 
         if asset not in self.assets:
