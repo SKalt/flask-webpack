@@ -14,4 +14,5 @@ class Flask(object):
 
     def add_template_global(self, fn: Callable[..., Markup]) -> None: ...
 
+
 current_app: Flask
