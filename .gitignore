@@ -52,3 +52,6 @@ tmtags
 .mypy_cache
 .pyre
 .pyre_cache
+
+# test cache
+.pytest_cache
