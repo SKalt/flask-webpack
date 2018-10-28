@@ -77,7 +77,6 @@ class Webpack(object):
         debug = app.config.get("DEBUG", False)
         if debug:
             app.before_request(self._refresh_webpack_stats)
-            self.log = app.logger.log(getLevelName("ERROR"))
 
         log_level = app.config.get(
             "WEBPACK_LOG_LEVEL", "DEBUG" if debug else "ERROR"
@@ -190,7 +189,7 @@ class Webpack(object):
                 tags.append(
                     Markup(
                         '<link rel="stylesheet" href="{0}">'.format(
-                            asset_path, _markup_kvp(attrs)
+                            asset_path, _markup_kvp(**attrs)
                         )
                     )
                 )

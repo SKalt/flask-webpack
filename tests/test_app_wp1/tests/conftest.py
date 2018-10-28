@@ -1,6 +1,6 @@
 import pytest
 
-from flask_webpack.tests.test_app.app import create_app, index
+from ..app import create_app, index
 
 
 @pytest.yield_fixture(scope="session")
