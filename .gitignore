@@ -50,3 +50,5 @@ tmtags
 
 # type checking
 .mypy_cache
+.pyre
+.pyre_cache
