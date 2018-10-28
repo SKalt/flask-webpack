@@ -13,5 +13,6 @@ install:
 
 script:
   - 'flake8 .'
+  - 'pyre check'
   - 'pytest ./tests/unit.py'
   - 'pytest ./tests/test_app_wp1/tests'
