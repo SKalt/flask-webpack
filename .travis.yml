@@ -3,6 +3,7 @@ language: 'python'
 python:
   - '2.7'
   - '3.4'
+  - '3.6'
 
 before_install:
   - 'pip install setuptools flake8 pytest'
@@ -12,4 +13,5 @@ install:
 
 script:
   - 'flake8 .'
-  - 'py.test flask_webpack/tests/test_app/tests'
+  - 'pytest ./tests/unit.py'
+  - 'pytest ./tests/test_app_wp1/tests'
