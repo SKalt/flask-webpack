@@ -63,21 +63,7 @@ class Webpack(object):
         :param app: Flask application
         :return: None
         """
-
-        # Setup a few sane defaults.
-        app.config.setdefault(
-            "WEBPACK_MANIFEST_PATH",
-            "/tmp/themostridiculousimpossiblepathtonotexist",
-        )
-        app.config.setdefault("WEBPACK_ASSETS_URL", None)
-        self._set_asset_paths(app)
-
-        # We only want to refresh the webpack stats in development mode,
-        # not everyone sets this setting, so let's assume it's production.
         debug = app.config.get("DEBUG", False)
-        if debug:
-            app.before_request(self._refresh_webpack_stats)
-
         log_level = app.config.get(
             "WEBPACK_LOG_LEVEL", "DEBUG" if debug else "ERROR"
         )
@@ -88,6 +74,15 @@ class Webpack(object):
         if log_level:
             self.log_level = log_level
             self.log = log
+
+        # Setup a few sane defaults
+        app.config.setdefault("WEBPACK_ASSETS_URL", None)
+        self._set_asset_paths(app)
+
+        # We only want to refresh the webpack stats in development mode,
+        # not everyone sets this setting, so let's assume it's production.
+        if debug:
+            app.before_request(self._refresh_webpack_stats)
 
         if hasattr(app, "add_template_global"):
             app.add_template_global(self.javascript_tag)
@@ -130,9 +125,9 @@ class Webpack(object):
                     )
             except IOError:
                 message = (
-                    "[Flask-Webpack] WEBPACK_MANIFEST_PATH "
-                    "{} must point to a valid json file.".format(webpack_stats)
-                )
+                    "[Flask-Webpack] WEBPACK_MANIFEST_PATH='{}' must point to"
+                    " a valid json file."
+                ).format(webpack_stats)
                 self.log(message)
                 if self.log_level == "ERROR":
                     raise RuntimeError(message)
@@ -161,18 +156,19 @@ class Webpack(object):
         tags = []
 
         for arg in args:
-            asset_path = self.asset_url_for("{}.js".format(arg))
+            asset_path = (
+                self.asset_url_for("{}.js".format(arg))
+                or self.asset_url_for(arg)
+            )
             if asset_path:
                 tags.append(
-                    Markup(
-                        '<script src="{}" {}></script>'.format(
-                            asset_path, attrs
-                        )
+                    '<script src="{}" {}></script>'.format(
+                        asset_path, _markup_kvp(**attrs)
                     )
                 )
             else:
                 tags.append(self._warn_missing(arg, "script"))
-        return "\n".join(tags)
+        return Markup("\n".join(tags))
 
     def stylesheet_tag(self, *args, **attrs):
         """
@@ -184,13 +180,18 @@ class Webpack(object):
         tags = []
 
         for arg in args:
-            asset_path = self.asset_url_for("{0}.css".format(arg))
+            asset_path = (
+                self.asset_url_for("{}.css".format(arg))
+                or self.asset_url_for(arg)
+                or self.asset_url_for("{}.scss".format(arg))
+                or self.asset_url_for("{}.sass".format(arg))
+                or self.asset_url_for("{}.less".format(arg))
+                or self.asset_url_for("{}.styl".format(arg))
+            )
             if asset_path:
                 tags.append(
-                    Markup(
-                        '<link rel="stylesheet" href="{0}">'.format(
-                            asset_path, _markup_kvp(**attrs)
-                        )
+                    '<link rel="stylesheet" href="{0}" {1}>'.format(
+                        asset_path, _markup_kvp(**attrs)
                     )
                 )
             else:
