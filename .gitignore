@@ -10,6 +10,7 @@ node_modules
 bin/
 develop-eggs/
 dist/
+tests/**/dist*/
 eggs/
 parts/
 sdist/

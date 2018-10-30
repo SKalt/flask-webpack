@@ -1,5 +1,3 @@
-from ..app import app
-
 
 def test_index_page(client):
     """ Expect to see the md5 tagged assets in the source code. """

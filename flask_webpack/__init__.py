@@ -44,11 +44,18 @@ def _warn_missing(missing, type_info="asset", level="ERROR", log=_noop):
 
 
 class Webpack(object):
-    def __init__(self, app=None, assets_url=None, **assets):
+    def __init__(
+        self,
+        app=None,
+        assets_url=None,
+        manifest_path=None,
+        **assets
+    ):
         """Internalize the app context and add helpers to the app."""
         self.app = app
         self.assets_url = assets_url
         self.assets = assets
+        self.manifest_path = manifest_path
         if app is not None:
             self.init_app(app)
         else:
@@ -105,24 +112,24 @@ class Webpack(object):
         :param app: Flask application
         :return: None
         """
-        webpack_stats = app.config.get("WEBPACK_MANIFEST_PATH")
+        webpack_stats = app.config.get(
+            "WEBPACK_MANIFEST_PATH",
+            self.manifest_path
+        )
         if webpack_stats is None:
             self.log("[Flask-Webpack] 'WEBPACK_MANIFEST_PATH' is not set")
         else:
             try:
                 with app.open_resource(webpack_stats, "r") as stats_json:
                     stats = json.load(stats_json)
-                    public_path = "/"
 
-                    if app.config.get("WEBPACK_MANIFEST_ASSETS_ONLY") is True:
-                        self.assets = stats
-                    else:
-                        self.assets = stats["assets"]
-                        public_path = stats.get("publicPath") or public_path
-
-                    self.assets_url = (
-                        app.config.get("WEBPACK_ASSETS_URL") or public_path
-                    )
+                self.assets_url = (
+                    app.config.get("WEBPACK_ASSETS_URL")
+                    or stats.get("publicPath")
+                    or stats.get("public_path")
+                    or self.assets_url
+                )
+                self.assets = stats.get("assets") or stats
             except IOError:
                 message = (
                     "[Flask-Webpack] WEBPACK_MANIFEST_PATH='{}' must point to"

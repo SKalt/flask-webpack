@@ -30,6 +30,7 @@ class Webpack(object):
         self,
         app: Optional[Flask]=None,
         assets_url: Optional[str]=None,
+        manifest_path: Optional[str]=None,
         **assets: str
     )-> None:
         ...

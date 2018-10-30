@@ -1,4 +1,5 @@
 import pytest
+import os
 from flask import (
     Flask,
     render_template_string,
@@ -150,3 +151,46 @@ def test_style_preprocessor(ext):
             ' type="text/css">'
     )
     assert rendered == expected
+
+
+__dirname = os.path.dirname(os.path.abspath(__file__))
+
+
+def test_nested_asset_map():
+    path = os.path.abspath(
+        os.path.join(
+            __dirname,
+            'test_app_wp1',
+            'build',
+            'manifest.json'
+        )
+    )
+    app = Flask('test_app')
+    app.config['WEBPACK_MANIFEST_PATH'] = path
+    Webpack(app)
+    with app.app_context():
+        r1 = render_template_string(
+            '{{ asset_url_for("images/dog/no-idea.jpg") }}'
+        )
+        r2 = render_template_string('{{ asset_url_for("app_js.js")}}')
+    e1 = (
+        "http://localhost:2992/assets/images/dog/"
+        "no-idea.b9252d5fd8f39ce3523d303144338d7b.jpg"
+    )
+    e2 = "http://localhost:2992/assets/app_js.8b7c0de88caa3f366b53.js"
+    assert r1 == e1
+    assert r2 == e2
+
+
+def test_flat_asset_map():
+    path = os.path.abspath(os.path.join(__dirname, 'flat_asset_map.json'))
+    app = Flask('test_app')
+    app.config['WEBPACK_MANIFEST_PATH'] = path
+    Webpack(app)
+    with app.app_context():
+        r1 = render_template_string("{{ javascript_tag('foo') }}")
+        r2 = render_template_string("{{ javascript_tag('bar.js') }}")
+    e1 = '<script src="correct/foo.h4sh3d.js" ></script>'
+    e2 = '<script src="correct/completely-different.hashed.js" ></script>'
+    assert r1 == e1
+    assert r2 == e2

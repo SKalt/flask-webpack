@@ -1,50 +1,58 @@
-|PyPI version| |Build status|
+Flask-Webpack
+^^^^^^^^^^^^^
+|PyPI version| |license| |Build Status|
+  Manage frontend assets with `Webpack <https://webpack.js.org/>`_, use them with flask
 
-What is Flask-Webpack?
-^^^^^^^^^^^^^^^^^^^^^^
 
-Managing assets can be a serious burden. Here's just a few things you get by
-using this package:
+Installation
+------------
 
-- Minify assets
-- Attach vendor prefixes to your CSS automatically
-- Optimize image sizes
-- Leverage the CommonJS module system to organize your Javascript
-- Compile Markdown
-- Compile 20+ client side template languages
-- Compile LESS, SASS and any other CSS pre-processor you can imagine
-- Compile Typescript, Coffeescript and any other *to-javascript* language
-- Compile Ecmascript 6 (ES) down to ES 5
-- Compile React JSX to JS with hot module reloading
-- Near instant compile times, ~20-50ms is common on my workstation
-- Optionally get source maps in development mode
-- Serve your assets from a tricked out local development asset server
-- Cache all assets forever because their file names get md5-tagged
-- The only runtime you need other than Python is NodeJS
-- Never deal with file watchers again because it's all taken care of for you
-- And much more...
+.. code:: sh
 
-All of the features above are the direct result of using `Webpack <http://webpack.github.io/>`_
-to manage your assets. The huge win here besides the obvious is that the
-functionality is outside of this package.
+  pip install flask-webpack # from pypi
+  # or
+  pip install git+https://github.com/nickjj/flask-webpack#egg=flask_webpack
 
-That means you have free reign to pick and choose what you want without
-having to worry about Flask-Webpack versions. If a new Webpack plugin becomes
-available, you can use it immediately.
 
-What does this package do then?
--------------------------------
+Quickstart
+----------
 
-It sets up a few template tags so you can access the assets inside of your
-jinja templates.
+.. code:: sh
 
-**It means you can type this:**
+  # webpack quickstart
+  npm install --save-dev webpack webpack-cli
+  npm install --save lodash
+  npx webpack --output-filename [name].[chunkhash].js
+  # looks for ./src/index.js for js assets, puts their compiled results in
+  # ./dist/
 
-``<img src="{{ asset_url_for('images/hamburger.svg') }}" alt="Hamburger">``
+.. code:: javascript
 
-**...and once your jinja template has been compiled, you will see this:**
+  // src/index.js
+  import _ from 'lodash'
+  console.log(_.join(['hello', 'webpack'], ' '))
 
-``<img src="images/hamburger.d2cb0dda3e8313b990e8dcf5e25d2d0f.svg" alt="Hamburger">``
+.. code:: python
+
+  # app.py
+  from flask import Flask
+  from flask_webpack import Webpack
+
+  webpack = Webpack()
+
+  app = Flask(__name__, static_folder="./dist")
+  webpack.init_app(app)
+
+.. code:: html
+
+  <!-- templates/index.html -->
+  {{ javascript_tag('index.js') }}
+
+If you have a webpack entrypoint named ``index.js``, the template will complile to
+
+.. code:: html
+
+  <script src="index.h4sh3d.js"></script>
 
 Now you can happily tell your frontend proxy to cache that hamburger image for
 an entire year. If you ever change the hamburger, the md5 will change but you
@@ -54,31 +62,13 @@ tag knows how to look it up.
 Global template tags
 --------------------
 
-- **asset_url_for(asset_relative_path)** to resolve an asset name
-- **javascript_tag(\*asset_relative_paths)** to write out 1 or more script tags
-- **stylesheet_tag(\*asset_relative_paths)** to write out 1 or more stylesheet tags
+- **asset_url_for(asset_name)** to resolve an asset name
+- **javascript_tag(\*asset_names, \*\*tag_props)** to write out 1 or more script tags
+- **stylesheet_tag(\*asset_names, \*\*tag_props)** to write out 1 or more stylesheet tags
 
 Both the javascript and stylesheet tags accept multiple arguments. If you give
 it more than argument it will create as many tags as needed.
 
-
-Installation
-^^^^^^^^^^^^
-
-``pip install Flask-Webpack``
-
-Quick start
-^^^^^^^^^^^
-
-::
-
-    from flask import Flask
-    from flask_webpack import Webpack
-
-    webpack = Webpack()
-
-    app = Flask(__name__)
-    webpack.init_app(app)
 
 You can view a complete working example in the `test app <https://github.com/nickjj/flask-webpack/tree/master/flask_webpack/tests/test_app>`_.
 
@@ -136,8 +126,8 @@ stylesheets and are referencing a relative path to an asset, such as:
 
 ``src: url('../../fonts/CoolFont.eot')``
 
-The above works in development mode because that's where the file is 
-located but in production mode the asset is not there. The ``asset_url_for`` 
+The above works in development mode because that's where the file is
+located but in production mode the asset is not there. The ``asset_url_for``
 template helper handles all of this for you on the server side but now you need
 some assistance  on the client side as well.
 
@@ -172,8 +162,16 @@ Contributors
 ^^^^^^^^^^^^
 
 - Nick Janetakis <nick.janetakis@gmail.com>
+- Steven Kalt
 
-.. |PyPI version| image:: https://badge.fury.io/py/flask-webpack.png
-   :target: https://pypi.python.org/pypi/flask-webpack
-.. |Build status| image:: https://secure.travis-ci.org/nickjj/flask-webpack.png
-   :target: https://travis-ci.org/nickjj/flask-webpack
+.. |PyPI version| image:: https://img.shields.io/pypi/v/flask-webpack.svg
+  :alt: PyPI
+  :target: https://pypi.python.org/pypi/flask-webpack
+
+.. |Build Status| image:: https://travis-ci.org/nickjj/flask-webpack.svg?branch=master
+  :alt: build status
+  :target: https://travis-ci.org/nickjj/flask-webpack
+
+.. |license| image:: https://img.shields.io/pypi/l/Flask-Webpack.svg
+  :alt: PyPI - License
+  :target: https://pypi.org/project/Flask-Webpack/
