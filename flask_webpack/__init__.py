@@ -44,13 +44,7 @@ def _warn_missing(missing, type_info="asset", level="ERROR", log=_noop):
 
 
 class Webpack(object):
-    def __init__(
-        self,
-        app=None,
-        assets_url=None,
-        manifest_path=None,
-        **assets
-    ):
+    def __init__(self, app=None, assets_url=None, manifest_path=None, **assets):
         """Internalize the app context and add helpers to the app."""
         self.app = app
         self.assets_url = assets_url
@@ -71,9 +65,7 @@ class Webpack(object):
         :return: None
         """
         debug = app.config.get("DEBUG", False)
-        log_level = app.config.get(
-            "WEBPACK_LOG_LEVEL", "DEBUG" if debug else "ERROR"
-        )
+        log_level = app.config.get("WEBPACK_LOG_LEVEL", "DEBUG" if debug else "ERROR")
 
         def log(message):
             app.logger.log(getLevelName(log_level), message)
@@ -112,10 +104,7 @@ class Webpack(object):
         :param app: Flask application
         :return: None
         """
-        webpack_stats = app.config.get(
-            "WEBPACK_MANIFEST_PATH",
-            self.manifest_path
-        )
+        webpack_stats = app.config.get("WEBPACK_MANIFEST_PATH", self.manifest_path)
         if webpack_stats is None:
             self.log("[Flask-Webpack] 'WEBPACK_MANIFEST_PATH' is not set")
         else:
@@ -149,9 +138,7 @@ class Webpack(object):
         self._set_asset_paths(current_app)
 
     def _warn_missing(self, missing, type_info="asset"):
-        return _warn_missing(
-            missing, type_info, level=self.log_level, log=self.log
-        )
+        return _warn_missing(missing, type_info, level=self.log_level, log=self.log)
 
     def javascript_tag(self, *args, **attrs):
         """
@@ -163,9 +150,8 @@ class Webpack(object):
         tags = []
 
         for arg in args:
-            asset_path = (
-                self.asset_url_for("{}.js".format(arg))
-                or self.asset_url_for(arg)
+            asset_path = self.asset_url_for("{}.js".format(arg)) or self.asset_url_for(
+                arg
             )
             if asset_path:
                 tags.append(
