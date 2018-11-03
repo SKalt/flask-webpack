@@ -6,7 +6,7 @@ python:
   - '3.6'
 
 before_install:
-  - 'pip install setuptools flake8 pytest'
+  - 'pip install setuptools flake8 pytest pyre-check'
 
 install:
   - 'pip install --editable .'
@@ -14,5 +14,4 @@ install:
 script:
   - 'flake8 .'
   - 'pyre check'
-  - 'pytest ./tests/unit.py'
-  - 'pytest ./tests/test_app_wp1/tests'
+  - 'pytest ./tests/unit.py ./tests/test_app_wp1/tests'

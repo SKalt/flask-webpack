@@ -4,7 +4,7 @@ def test_index_page(client):
     response = client.get("/")
     assert response.status_code == 200
 
-    asset_path = "https://yourdomainname_or_asset_cdn.com/assets/"
+    asset_path = "https://your.domain_or_asset_cdn.com/assets/"
     css = "app_css.d5cbf1ea13fccdf706e2.css"
     js = "app_js.8b7c0de88caa3f366b53.js"
     image = "images/dog/no-idea.b9252d5fd8f39ce3523d303144338d7b.jpg"
