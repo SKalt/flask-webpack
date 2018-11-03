@@ -1,3 +1,4 @@
+import os
 import json
 
 from flask import current_app
@@ -31,7 +32,7 @@ def _warn_missing(missing, type_info="asset", level="ERROR", log=_noop):
         return '<script>{fn}("{msg}")</script>'.format(fn=fn, msg=msg)
 
     if level == "DEBUG":
-        return Markup("<!-- {} -->".format(message.replace("-->", "")))
+        return "<!-- {} -->".format(message.replace("-->", ""))
     elif level == "INFO":
         return js_warn("console.info", message)
     elif level == "WARNING":
@@ -73,7 +74,11 @@ class Webpack(object):
         :param app: Flask application
         :return: None
         """
-        debug = app.config.get("DEBUG", False)
+        debug = (
+            app.config.get("DEBUG")
+            or os.environ.get("FLASK_DEBUG")
+            or os.environ.get("FLASK_ENV") == 'development'
+        )
         log_level = app.config.get(
             "WEBPACK_LOG_LEVEL", "DEBUG" if debug else "ERROR"
         )
