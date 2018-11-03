@@ -9,12 +9,23 @@ from logging import getLevelName
 def _noop(*args, **kwargs):
     pass
 
+def _escape(s):
+    return (
+        s.replace("&", "&amp;")
+        .replace('<', '&lt;')
+        .replace('>', '&gt;')
+        .replace('"', '&quot;')
+        .replace("'", '&#39;')
+    )
+
 
 def _markup_kvp(**attrs):
     """helper: returns str HTML-style key-value pairs"""
     return " ".join(
         [
-            key if value is True else '{}="{}"'.format(key, value)
+            key if value is True else '{}="{}"'.format(
+                key, _escape(str(value))
+            )
             for key, value in attrs.items()
             if value is not False
         ]

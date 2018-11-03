@@ -11,6 +11,9 @@ from typing import (
 _Whatev = Union[None, str, bytes, int]
 
 
+def _escape(s: str) -> str: ...
+
+
 def _noop(*args: _Whatev, **kwargs: _Whatev) -> None: ...
 
 
