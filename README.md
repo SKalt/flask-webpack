@@ -125,7 +125,11 @@ default: ``None``
 default: `"/"`
 
 **Optional:** A URL to prepend to your hashed asset names. In production, you can set this to your full domain name or CDN.  In development, you might to point to a [`webpack-dev-server`](https://github.com/webpack/webpack-dev-server) on another port.  You can control this in python switching `os.environ.get("FLASK_ENV") == "development"` or by changing the value of the `publicPath` key in the generation of your asset map.
+
 ⚠️ warning: this does not automatically join the URL and your asset name.  You must provide the joining `/`.
+
+⚠️ warning: prepending a different `asset_url`/`public_path` to your assets may cause them not to work in production `url(./relative/path/to/style/asset)`
+
 
 ```python
 app.config.get("WEBPACK_MANIFEST_ASSETS_ONLY")
@@ -159,11 +163,27 @@ if level == "DEBUG":
 
 </details>
 
+<details><summary>Development</summary>
 
+```sh
+git clone https://github.com/nickjj/flask-webpack.git
+cd flask-webpack
 
-⚠️ warning: prepending a different `asset_url`/`public_path` to your assets may cause them not to work in production `url(./relative/path/to/style/asset)`
+# having created a fresh virtualenv with a tool of your choice..
+source activate flask-webpack
+pip install -r requirements.txt
+pip install -r devRequirements.txt
+```
+pre-push, please run:
+```bash
+flake8 .      # check the style
+pip install . # check it builds
+pyre check    # run the static type checker
+pytest ./tests/unit.py ./tests/test_app_wp1/tests
+pip uninstall flask-webpack
+```
+</details>
 
 ### Contributors
 
 - Nick Janetakis <nick.janetakis@gmail.com>
-- Steven Kalt <steven.kalt@gmail.com>
