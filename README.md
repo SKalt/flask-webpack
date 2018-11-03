@@ -1,58 +1,39 @@
-Flask-Webpack
-^^^^^^^^^^^^^
-|PyPI version| |license| |Build Status|
-  Manage frontend assets with `Webpack <https://webpack.js.org/>`_, use them with flask
+
+# Flask-Webpack
+[![PyPI](https://img.shields.io/pypi/v/Flask-Webpack.svg)](https://pypi.org/project/Flask-Webpack/)
+[![PyPI - License](https://img.shields.io/pypi/l/Flask-Webpack.svg)](https://pypi.org/project/Flask-Webpack/)
+[![Build Status](https://travis-ci.org/nickjj/flask-webpack.svg?branch=master)](https://travis-ci.org/nickjj/flask-webpack)
+> Manage frontend assets with webpack, use the assets in flask
+
+<details>
+  <summary> Why use webpack?</summary>
+  https://webpack.js.org/
+</details>
+
+<details>
+  <summary> Usage </summary>
+</details>
+<details open>
+  <summary> Development</summary>
+    <code>
+    git clone $this
+    </code>
+</details>
 
 
-Installation
-------------
+What does this package do then?
+-------------------------------
 
-.. code:: sh
+It sets up a few template tags so you can access the assets inside of your
+jinja templates.
 
-  pip install flask-webpack # from pypi
-  # or
-  pip install git+https://github.com/nickjj/flask-webpack#egg=flask_webpack
+**It means you can type this:**
 
+``<img src="{{ asset_url_for('images/hamburger.svg') }}" alt="Hamburger">``
 
-Quickstart
-----------
+**...and once your jinja template has been compiled, you will see this:**
 
-.. code:: sh
-
-  # webpack quickstart
-  npm install --save-dev webpack webpack-cli
-  npm install --save lodash
-  npx webpack --output-filename [name].[chunkhash].js
-  # looks for ./src/index.js for js assets, puts their compiled results in
-  # ./dist/
-
-.. code:: javascript
-
-  // src/index.js
-  import _ from 'lodash'
-  console.log(_.join(['hello', 'webpack'], ' '))
-
-.. code:: python
-
-  # app.py
-  from flask import Flask
-  from flask_webpack import Webpack
-
-  webpack = Webpack()
-
-  app = Flask(__name__, static_folder="./dist")
-  webpack.init_app(app)
-
-.. code:: html
-
-  <!-- templates/index.html -->
-  {{ javascript_tag('index.js') }}
-
-If you have a webpack entrypoint named ``index.js``, the template will complile to
-
-.. code:: html
-
-  <script src="index.h4sh3d.js"></script>
+``<img src="images/hamburger.d2cb0dda3e8313b990e8dcf5e25d2d0f.svg" alt="Hamburger">``
 
 Now you can happily tell your frontend proxy to cache that hamburger image for
 an entire year. If you ever change the hamburger, the md5 will change but you
@@ -62,13 +43,31 @@ tag knows how to look it up.
 Global template tags
 --------------------
 
-- **asset_url_for(asset_name)** to resolve an asset name
-- **javascript_tag(\*asset_names, \*\*tag_props)** to write out 1 or more script tags
-- **stylesheet_tag(\*asset_names, \*\*tag_props)** to write out 1 or more stylesheet tags
+- **asset_url_for(asset_relative_path)** to resolve an asset name
+- **javascript_tag(\*asset_relative_paths)** to write out 1 or more script tags
+- **stylesheet_tag(\*asset_relative_paths)** to write out 1 or more stylesheet tags
 
 Both the javascript and stylesheet tags accept multiple arguments. If you give
 it more than argument it will create as many tags as needed.
 
+
+Installation
+^^^^^^^^^^^^
+
+``pip install Flask-Webpack``
+
+Quick start
+^^^^^^^^^^^
+
+::
+
+    from flask import Flask
+    from flask_webpack import Webpack
+
+    webpack = Webpack()
+
+    app = Flask(__name__)
+    webpack.init_app(app)
 
 You can view a complete working example in the `test app <https://github.com/nickjj/flask-webpack/tree/master/flask_webpack/tests/test_app>`_.
 
@@ -162,16 +161,9 @@ Contributors
 ^^^^^^^^^^^^
 
 - Nick Janetakis <nick.janetakis@gmail.com>
-- Steven Kalt
+- Steven Kalt <steven.kalt@gmail.com>
 
-.. |PyPI version| image:: https://img.shields.io/pypi/v/flask-webpack.svg
-  :alt: PyPI
-  :target: https://pypi.python.org/pypi/flask-webpack
-
-.. |Build Status| image:: https://travis-ci.org/nickjj/flask-webpack.svg?branch=master
-  :alt: build status
-  :target: https://travis-ci.org/nickjj/flask-webpack
-
-.. |license| image:: https://img.shields.io/pypi/l/Flask-Webpack.svg
-  :alt: PyPI - License
-  :target: https://pypi.org/project/Flask-Webpack/
+.. |PyPI version| image:: https://badge.fury.io/py/flask-webpack.png
+   :target: https://pypi.python.org/pypi/flask-webpack
+.. |Build status| image:: https://secure.travis-ci.org/nickjj/flask-webpack.png
+   :target: https://travis-ci.org/nickjj/flask-webpack

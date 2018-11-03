@@ -18,7 +18,9 @@ msg = "[flask-webpack] missing asset name"
 )
 def test_warn_missing(level, expected):
     def message_logged(generated):
-        assert generated == msg, "incorrect warning message logged at level " + level
+        assert generated == msg, (
+            "incorrect warning message logged at level " + level
+        )
 
     _warn_missing("name", "asset", level, message_logged)
 
@@ -31,8 +33,12 @@ def test_warn_missing_js_bundle():
     app.config["WEBPACK_LOG_LEVEL"] = "INFO"
     Webpack(app, assets_url="/", bar="bar.11a6e2.js")
     with app.app_context():
-        rendered = render_template_string('{{ javascript_tag("foo", module=True) }}')
-    expected = '<script>console.info("[flask-webpack] missing script foo")</script>'
+        rendered = render_template_string(
+            '{{ javascript_tag("foo", module=True) }}'
+        )
+    expected = (
+        '<script>console.info("[flask-webpack] missing script foo")</script>'
+    )
     assert rendered == expected
 
 
@@ -148,7 +154,9 @@ def test_nested_asset_map():
     app.config["WEBPACK_MANIFEST_PATH"] = path
     Webpack(app)
     with app.app_context():
-        r1 = render_template_string('{{ asset_url_for("images/dog/no-idea.jpg") }}')
+        r1 = render_template_string(
+            '{{ asset_url_for("images/dog/no-idea.jpg") }}'
+        )
         r2 = render_template_string('{{ asset_url_for("app_js.js")}}')
     e1 = (
         "http://localhost:2992/assets/images/dog/"
@@ -160,7 +168,9 @@ def test_nested_asset_map():
 
 
 def test_flat_asset_map():
-    path = os.path.abspath(os.path.join(__dirname, "complete_flat_asset_map.json"))
+    path = os.path.abspath(
+        os.path.join(__dirname, "complete_flat_asset_map.json")
+    )
     app = Flask("test_app")
     app.config["WEBPACK_MANIFEST_PATH"] = path
     Webpack(app)

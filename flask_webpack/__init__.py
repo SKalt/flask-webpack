@@ -10,6 +10,7 @@ def _noop(*args, **kwargs):
 
 
 def _markup_kvp(**attrs):
+    """helper: returns str HTML-style key-value pairs"""
     return " ".join(
         [
             key if value is True else '{}="{}"'.format(key, value)
@@ -44,8 +45,16 @@ def _warn_missing(missing, type_info="asset", level="ERROR", log=_noop):
 
 
 class Webpack(object):
-    def __init__(self, app=None, assets_url=None, manifest_path=None, **assets):
-        """Internalize the app context and add helpers to the app."""
+    def __init__(
+        self, app=None, assets_url=None, manifest_path=None, **assets
+    ):
+        """
+        Internalize the app context and add helpers to the app.
+        :param app: the flask app
+        :param assets_url: a URL to prefex all assets with
+        :param manifest_path: the path to a JSON name/filename asset map
+        :param assets: a JSON name/filename asset map
+        """
         self.app = app
         self.assets_url = assets_url
         self.assets = assets
@@ -59,13 +68,15 @@ class Webpack(object):
     def init_app(self, app):
         """
         Mutate the application passed in as explained here:
-        http://flask.pocoo.org/docs/0.12/extensiondev/
+        http://flask.pocoo.org/docs/latest/extensiondev/
 
         :param app: Flask application
         :return: None
         """
         debug = app.config.get("DEBUG", False)
-        log_level = app.config.get("WEBPACK_LOG_LEVEL", "DEBUG" if debug else "ERROR")
+        log_level = app.config.get(
+            "WEBPACK_LOG_LEVEL", "DEBUG" if debug else "ERROR"
+        )
 
         def log(message):
             app.logger.log(getLevelName(log_level), message)
@@ -98,13 +109,15 @@ class Webpack(object):
 
     def _set_asset_paths(self, app):
         """
-        Read in the manifest json file which acts as a manifest for assets.
+        Read in the manifest.json file which acts as a manifest for assets.
         This allows us to get the asset path as well as hashed names.
 
         :param app: Flask application
         :return: None
         """
-        webpack_stats = app.config.get("WEBPACK_MANIFEST_PATH", self.manifest_path)
+        webpack_stats = app.config.get(
+            "WEBPACK_MANIFEST_PATH", self.manifest_path
+        )
         if webpack_stats is None:
             self.log("[Flask-Webpack] 'WEBPACK_MANIFEST_PATH' is not set")
         else:
@@ -138,7 +151,13 @@ class Webpack(object):
         self._set_asset_paths(current_app)
 
     def _warn_missing(self, missing, type_info="asset"):
-        return _warn_missing(missing, type_info, level=self.log_level, log=self.log)
+        """
+        :param missing: the str asset name that was not found in self.assets
+        :param type_info: the type of asset that is missing (e.g. "script").
+        """
+        return _warn_missing(
+            missing, type_info, level=self.log_level, log=self.log
+        )
 
     def javascript_tag(self, *args, **attrs):
         """
@@ -150,9 +169,9 @@ class Webpack(object):
         tags = []
 
         for arg in args:
-            asset_path = self.asset_url_for("{}.js".format(arg)) or self.asset_url_for(
-                arg
-            )
+            asset_path = self.asset_url_for(
+                "{}.js".format(arg)
+            ) or self.asset_url_for(arg)
             if asset_path:
                 tags.append(
                     '<script src="{}" {}></script>'.format(
@@ -163,23 +182,26 @@ class Webpack(object):
                 tags.append(self._warn_missing(arg, "script"))
         return Markup("\n".join(tags))
 
-    def stylesheet_tag(self, *args, **attrs):
+    def stylesheet_tag(self, *assets, **attrs):
         """
         Convenience tag to output 1 or more stylesheet tags.
 
-        :param args: 1 or more stylesheet file names
-        :return: Link tag(s) containing the asset
+        :param assets: 1 or more names of bundled stylesheets.
+        :param attrs: properties to be applied to all the output html elements
+        :return: Markdown <link rel="stylesheet" .../>s containing the named
+            assets
         """
         tags = []
 
-        for arg in args:
+        for asset in assets:
             asset_path = (
-                self.asset_url_for("{}.css".format(arg))
-                or self.asset_url_for(arg)
-                or self.asset_url_for("{}.scss".format(arg))
-                or self.asset_url_for("{}.sass".format(arg))
-                or self.asset_url_for("{}.less".format(arg))
-                or self.asset_url_for("{}.styl".format(arg))
+                # ordered by how frequency of extension occurence.
+                self.asset_url_for("{}.css".format(asset))
+                or self.asset_url_for(asset)
+                or self.asset_url_for("{}.scss".format(asset))
+                or self.asset_url_for("{}.sass".format(asset))
+                or self.asset_url_for("{}.less".format(asset))
+                or self.asset_url_for("{}.styl".format(asset))
             )
             if asset_path:
                 tags.append(
@@ -188,18 +210,19 @@ class Webpack(object):
                     )
                 )
             else:
-                tags.append(self._warn_missing(arg, "stylesheet"))
+                tags.append(self._warn_missing(asset, "stylesheet"))
 
         return Markup("\n".join(tags))
 
     def asset_url_for(self, asset):
         """
-        Lookup the hashed asset path of a file name unless it starts with
-        something that resembles a web address, then take it as is.
+        Look up the hashed asset path of a bundle name unless it starts with
+        something that resembles a web address. In that case, interpret the
+        bundle name as a URL.
 
         :param asset: A logical path to an asset
         :type asset: str
-        :return: Asset path or None if not found
+        :return: str asset path or None if not found
         """
         if "//" in asset:
             return asset
