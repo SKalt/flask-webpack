@@ -1,17 +1,21 @@
 ---
-language: 'python'
+language: python
 python:
-  - '2.7'
-  - '3.4'
-  - '3.6'
+  - 2.7
+  - 3.4
+  - 3.6
+  # 3.7 is currently unavailable on travis
 
 before_install:
-  - 'pip install setuptools flake8 pytest pyre-check'
+  - pip install -r requirements/ci_common.txt
+  - if [[ $TRAVIS_PYTHON_VERSION == '3.6' ]]; then pip install -r requirements/ci_modern.txt; fi
 
 install:
-  - 'pip install --editable .'
+  - pip install .
 
 script:
-  - 'flake8 .'
-  - 'pyre check'
-  - 'pytest ./tests/unit.py ./tests/test_app_wp1/tests'
+  # run unit tests in all environments
+  - pytest ./tests/unit.py ./tests/test_app_wp1/tests
+  # use the 3.6 env to do style, typing checks
+  - if [[ $TRAVIS_PYTHON_VERSION == '3.6' ]]; then pyre check; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == '3.6' ]]; then black --check; fi

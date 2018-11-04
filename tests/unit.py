@@ -1,9 +1,30 @@
 import pytest
 import os
+import sys
 from flask import Flask, render_template_string
+from jinja2 import Markup
 from flask_webpack import _markup_kvp, _warn_missing, Webpack
+from lxml.etree import fromstring, XMLParser
 
+# constants
+parser = XMLParser(recover=True)
 msg = "[flask-webpack] missing asset name"
+
+
+def parse(e):
+    """Turn a string html element into a dict of tag attributes"""
+    return fromstring(e, parser=parser).attrib
+
+
+def check_attrib(rendered, expected):
+    version = float(sys.version[:2])
+    if version >= 3.6:
+        assert rendered == expected
+    else:
+        for actual, target in zip(rendered.split('\n'), expected.split('\n')):
+            expected_props = parse(target)
+            actual_props = parse(actual)
+            assert expected_props == actual_props
 
 
 @pytest.mark.parametrize(
@@ -79,7 +100,7 @@ def test_js_tag_multiple():
         '<script src="/foo.h4sh3d.js" ></script>\n'
         '<script src="/bar.11a6e2.js" ></script>'
     )
-    assert rendered == expected
+    check_attrib(rendered, expected)
 
 
 def test_js_tag_multiple_kvp():
@@ -119,7 +140,7 @@ def test_style_tag_multiple_kvp():
         ' crossorigin="anonymous"'
         ' type="text/css">'
     )
-    assert rendered == expected
+    check_attrib(rendered, expected)
 
 
 @pytest.mark.parametrize("ext", (".scss", "", ".sass", ".less", ".styl"))
@@ -140,7 +161,7 @@ def test_style_preprocessor(ext):
         ' crossorigin="anonymous"'
         ' type="text/css">'
     )
-    assert rendered == expected
+    check_attrib(rendered, expected)
 
 
 __dirname = os.path.dirname(os.path.abspath(__file__))
