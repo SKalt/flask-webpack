@@ -156,10 +156,9 @@ default: `"ERROR"`
 |**DEBUG**| `<-- comment about missing asset -->`|
 if level == "DEBUG":
     return "<!-- {} -->".format(message.replace("-->", "")
-|**INFO**|`console.info`|
-|**WARNING**|`console.warn`|
-|**ERROR**|`console.error`|
-|**CRITICAL**|`alert"|
+|**INFO**|`console.warn`|
+|**WARNING**|`console.error`|
+|**ERROR+**|`werkzeug.routing.BuildError`|
 
 </details>
 

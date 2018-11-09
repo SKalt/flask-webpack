@@ -2,7 +2,7 @@ import pytest
 import os
 import sys
 from flask import Flask, render_template_string
-from jinja2 import Markup
+from werkzeug.routing import BuildError
 from flask_webpack import _markup_kvp, _warn_missing, Webpack
 from lxml.etree import fromstring, XMLParser
 
@@ -21,7 +21,7 @@ def check_attrib(rendered, expected):
     if version >= 3.6:
         assert rendered == expected
     else:
-        for actual, target in zip(rendered.split('\n'), expected.split('\n')):
+        for actual, target in zip(rendered.split("\n"), expected.split("\n")):
             expected_props = parse(target)
             actual_props = parse(actual)
             assert expected_props == actual_props
@@ -31,10 +31,8 @@ def check_attrib(rendered, expected):
     "level,expected",
     [
         ("DEBUG", "<!-- " + msg + " -->"),
-        ("INFO", '<script>console.info("' + msg + '")</script>'),
-        ("WARNING", '<script>console.warn("' + msg + '")</script>'),
-        ("ERROR", '<script>console.error("' + msg + '")</script>'),
-        ("CRITICAL", '<script>alert("' + msg + '")</script>'),
+        ("INFO", '<script>console.warn("' + msg + '")</script>'),
+        ("WARNING", '<script>console.error("' + msg + '")</script>'),
     ],
 )
 def test_warn_missing(level, expected):
@@ -48,6 +46,29 @@ def test_warn_missing(level, expected):
     assert _warn_missing("name", level=level) == expected, "unexpected warning"
 
 
+@pytest.mark.parametrize("level", ("ERROR", "CRITICAL"))
+def test_warn_missing_throws(level):
+    def message_logged(generated):
+        assert generated == msg, (
+            "incorrect warning message logged at level " + level
+        )
+
+    bad_asset_map = {"is it": "me you're looking for?"}
+    with pytest.raises(BuildError) as err_info:
+        _warn_missing(
+            "name",
+            "asset",
+            level="ERROR",
+            log=message_logged,
+            values=bad_asset_map,
+        )
+        assert False, "Should have thrown a BuildError"
+    err = err_info.value
+    assert err.method == ("asset",), "incorrect error method"
+    assert err.values == bad_asset_map
+    assert err.args == ("name", bad_asset_map, ("asset",))
+
+
 def test_warn_missing_js_bundle():
     app = Flask("test_app")
     # app.config['WEBPACK_MANIFEST_PATH'] = ''
@@ -58,7 +79,7 @@ def test_warn_missing_js_bundle():
             '{{ javascript_tag("foo", module=True) }}'
         )
     expected = (
-        '<script>console.info("[flask-webpack] missing script foo")</script>'
+        '<script>console.warn("[flask-webpack] missing script foo")</script>'
     )
     assert rendered == expected
 

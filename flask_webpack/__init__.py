@@ -3,19 +3,21 @@ import json
 
 from flask import current_app
 from jinja2 import Markup
+from werkzeug.routing import BuildError
 from logging import getLevelName
 
 
 def _noop(*args, **kwargs):
     pass
 
+
 def _escape(s):
     return (
         s.replace("&", "&amp;")
-        .replace('<', '&lt;')
-        .replace('>', '&gt;')
-        .replace('"', '&quot;')
-        .replace("'", '&#39;')
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+        .replace("'", "&#39;")
     )
 
 
@@ -23,16 +25,18 @@ def _markup_kvp(**attrs):
     """helper: returns str HTML-style key-value pairs"""
     return " ".join(
         [
-            key if value is True else '{}="{}"'.format(
-                key, _escape(str(value))
-            )
+            key
+            if value is True
+            else '{}="{}"'.format(key, _escape(str(value)))
             for key, value in attrs.items()
             if value is not False
         ]
     )
 
 
-def _warn_missing(missing, type_info="asset", level="ERROR", log=_noop):
+def _warn_missing(
+    missing, type_info="asset", level="ERROR", log=_noop, values={}
+):
     message = "[flask-webpack] missing {type_info} {missing}".format(
         type_info=type_info, missing=missing
     )
@@ -45,15 +49,11 @@ def _warn_missing(missing, type_info="asset", level="ERROR", log=_noop):
     if level == "DEBUG":
         return "<!-- {} -->".format(message.replace("-->", ""))
     elif level == "INFO":
-        return js_warn("console.info", message)
-    elif level == "WARNING":
         return js_warn("console.warn", message)
-    elif level == "ERROR":
+    elif level == "WARNING":
         return js_warn("console.error", message)
-    elif level == "CRITICAL":
-        return js_warn("alert", message)
-    else:
-        return ""
+
+    raise BuildError(missing, values, (type_info,))
 
 
 class Webpack(object):
@@ -88,7 +88,7 @@ class Webpack(object):
         debug = (
             app.config.get("DEBUG")
             or os.environ.get("FLASK_DEBUG")
-            or os.environ.get("FLASK_ENV") == 'development'
+            or os.environ.get("FLASK_ENV") == "development"
         )
         log_level = app.config.get(
             "WEBPACK_LOG_LEVEL", "DEBUG" if debug else "ERROR"
@@ -172,7 +172,11 @@ class Webpack(object):
         :param type_info: the type of asset that is missing (e.g. "script").
         """
         return _warn_missing(
-            missing, type_info, level=self.log_level, log=self.log
+            missing,
+            type_info,
+            level=self.log_level,
+            log=self.log,
+            values=self.assets,
         )
 
     def javascript_tag(self, *args, **attrs):
