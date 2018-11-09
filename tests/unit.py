@@ -137,7 +137,7 @@ def test_js_tag_multiple_kvp():
         '<script src="/foo.h4sh3d.js" async defer></script>\n'
         '<script src="/bar.11a6e2.js" async defer></script>'
     )
-    assert rendered == expected
+    check_attrib(rendered, expected)
 
 
 def test_style_tag_multiple_kvp():
