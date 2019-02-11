@@ -199,12 +199,45 @@ def test_nested_asset_map():
         r1 = render_template_string(
             '{{ asset_url_for("images/dog/no-idea.jpg") }}'
         )
-        r2 = render_template_string('{{ asset_url_for("app_js.js")}}')
+        r2 = render_template_string('{{ asset_url_for("app_js.js") }}')
     e1 = (
         "http://localhost:2992/assets/images/dog/"
         "no-idea.b9252d5fd8f39ce3523d303144338d7b.jpg"
     )
     e2 = "http://localhost:2992/assets/app_js.8b7c0de88caa3f366b53.js"
+    assert r1 == e1
+    assert r2 == e2
+
+
+def test_nested_asset_map_missing_public_path():
+    path = os.path.abspath(
+        os.path.join(__dirname, 'nested_asset_map_missing_public_path.json')
+    )
+    app = Flask("test_app")
+    app.config["WEBPACK_MANIFEST_PATH"] = path
+    webpack = Webpack()
+    webpack.init_app(app)
+    with app.app_context():
+        rendered = render_template_string('{{ asset_url_for("temp.js") }}')
+    assert rendered == '//localhost:8080/temp.js'
+
+
+def test_flat_asset_map_renamed_public_path():
+    path = os.path.abspath(
+        os.path.join(__dirname, 'flat_asset_map_renamed_public_path.json')
+    )
+    app = Flask("test_app")
+    app.config["WEBPACK_MANIFEST_PATH"] = path
+    webpack = Webpack()
+    webpack.init_app(app)
+
+    with app.app_context():
+        r1 = render_template_string(
+            '{{ asset_url_for("foo") }}'
+        )
+        r2 = render_template_string('{{ asset_url_for("bar.js") }}')
+    e1 = "//localhost:8080/foo.h4sh3d.js"
+    e2 = "//localhost:8080/completely-different.hashed.js"
     assert r1 == e1
     assert r2 == e2
 

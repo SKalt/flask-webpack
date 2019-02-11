@@ -68,7 +68,7 @@ class Webpack(object):
         :param assets: a JSON name/filename asset map
         """
         self.app = app
-        self.assets_url = assets_url
+        self.assets_url = assets_url or ""
         self.assets = assets
         self.manifest_path = manifest_path
         if app is not None:
@@ -146,6 +146,7 @@ class Webpack(object):
                     or stats.get("publicPath")
                     or stats.get("public_path")
                     or self.assets_url
+                    or ""
                 )
                 self.assets = stats.get("assets") or stats
             except IOError:
@@ -189,9 +190,10 @@ class Webpack(object):
         tags = []
 
         for arg in args:
-            asset_path = self.asset_url_for(
-                "{}.js".format(arg)
-            ) or self.asset_url_for(arg)
+            asset_path = (
+                self.asset_url_for("{}.js".format(arg))
+                or self.asset_url_for(arg)
+            )
             if asset_path:
                 tags.append(
                     '<script src="{}" {}></script>'.format(
@@ -250,4 +252,4 @@ class Webpack(object):
         if asset not in self.assets:
             return None
 
-        return "{0}{1}".format(self.assets_url, self.assets[asset])
+        return (self.assets_url or "") + self.assets[asset]
