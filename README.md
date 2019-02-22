@@ -22,7 +22,7 @@ pip install flask-webpack # from pypi
 pip install git+https://github.com/nickjj/flask-webpack#egg=flask_webpack
 ```
 
-<details><summary><span style="font-size: 24px; font-weight: 600;">Quickstart</span></summary>
+<details><summary>Quickstart</summary>
 
 ```{sh}
   # webpack quickstart
@@ -66,7 +66,7 @@ do not need to change any of your templates because the `asset_url_for`
 tag knows how to look it up.
 </details>
 
-<details><summary><span style="font-size: 24px; font-weight: 600;">Global template tags</span></summary>
+<details><summary>Global template tags</summary>
 
 | tag | results|
 |--|--|
@@ -93,8 +93,7 @@ or
 </details>
 
 
-<details>
-<summary><span style="font-size: 20px; font-weight: 600;">Configuration<span></summary>
+<details><summary>Configuration<span></summary>
 
 `Flask-Webpack` resolves its configuration options with this order of priority:
   1. `app.config[OPTION_NAME]` trumps all
