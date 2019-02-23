@@ -1,0 +1,5 @@
+{
+  "foo": "foo.h4sh3d.js",
+  "bar.js": "completely-different.hashed.js",
+  "public_path": "//localhost:8080/"
+}
