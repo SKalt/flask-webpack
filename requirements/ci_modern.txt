@@ -1,2 +1,2 @@
-black      == 18.6b4
-pyre-check == 0.0.16
+black      == 18.9b0
+pyre-check == 0.0.20

@@ -1,0 +1,5 @@
+{
+  "vendor~jquery": "vendor~jquery.ch0nk3d.js",
+  "foo": ["vendor~jquery.ch0nk3d.js", "foo.h4sh3d.js"],
+  "bar.js": ["completely-different.hashed.js"]
+}
