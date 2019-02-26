@@ -5,11 +5,15 @@ from typing import (
     Callable,
     Union,
     Optional,
+    List,
+    Callable,
+    Dict,
     # TypeVar,
 )
 
 _Whatev = Union[None, str, bytes, int]
-
+# _MarkupValue = Union[str, bool, int]
+_MarkupKvp = Dict[str, Union[str, bool, int]]
 
 def _escape(s: str) -> str: ...
 
@@ -17,7 +21,13 @@ def _escape(s: str) -> str: ...
 def _noop(*args: _Whatev, **kwargs: _Whatev) -> None: ...
 
 
-def _markup_kvp(**attrs: Optional[Union[bool, str]]) -> str: ...
+def for_each_unique_chunk(
+    chunk_urls: List[str],
+    callback: Callable[[str], str]
+) -> None: ...
+
+
+def _markup_kvp(attrs: _MarkupKvp) -> str: ...
 
 
 def _warn_missing(
@@ -50,8 +60,26 @@ class Webpack(object):
         type_info: str="asset"
     ) -> None: ...
 
-    def javascript_tag(self, *args: str) -> Markup: ...
+    def javascript_tag(
+        self, *asset: str,
+        attrs: _MarkupKvp = {},
+        **more_attrs: Union[str, bool, int]
+    ) -> Markup: ...
 
-    def stylesheet_tag(self, *args: str) -> Markup: ...
+    def stylesheet_tag(
+        self, *assets: str,
+        attrs: _MarkupKvp = {},
+        **more_attrs: Union[str, bool, int]
+    ) -> Markup: ...
 
-    def asset_url_for(self, asset: str) -> str: ...
+    def asset_url_for(
+        self,
+        asset: str,
+        warn_multiple: bool=True
+    ) -> Optional[List[str]]: ...
+
+    def asset_urls_for(self, asset: str) -> Optional[List[str]]: ...
+
+    def resolve_ext(
+        self, asset: str, extensions: List[str]
+    ) -> Optional[List[str]]: ...

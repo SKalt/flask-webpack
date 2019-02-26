@@ -21,25 +21,34 @@ def _escape(s):
     )
 
 
-def _markup_kvp(**attrs):
+def _markup_kvp(_attrs={}, **more_attrs):
     """helper: returns str HTML-style key-value pairs"""
+    if type(_attrs) is str:
+        more_attrs["_attrs"] = _attrs
+        # this is dumb.
     return " ".join(
-        [
-            key
-            if value is True
-            else '{}="{}"'.format(key, _escape(str(value)))
-            for key, value in attrs.items()
-            if value is not False
-        ]
+        key if value is True else '{}="{}"'.format(key, _escape(str(value)))
+        for key, value in ({**_attrs, **more_attrs}).items()
+        if value is not False
     )
 
 
-def _warn_missing(
-    missing, type_info="asset", level="ERROR", log=_noop, values={}
+def for_each_unique_chunk(chunk_urls, callback):
+    used = set()
+    for chunk_url in chunk_urls:
+        if chunk_url not in used:
+            callback(chunk_url)
+        used.add(chunk_url)
+
+
+def _warn(
+    asset_name="",
+    message="",
+    type_info="asset",
+    level="ERROR",
+    log=_noop,
+    values={},
 ):
-    message = "[flask-webpack] missing {type_info} {missing}".format(
-        type_info=type_info, missing=missing
-    )
     log(message)
 
     def js_warn(fn, msg):
@@ -53,13 +62,44 @@ def _warn_missing(
     elif level == "WARNING":
         return js_warn("console.error", message)
 
-    raise BuildError(missing, values, (type_info,))
+    raise BuildError(asset_name, values, (type_info,))
+
+
+def _warn_missing(
+    asset_name, type_info="asset", level="ERROR", log=_noop, values={}
+):
+    message = "[flask-webpack] missing {type_info} {missing}".format(
+        type_info=type_info, missing=asset_name
+    )
+    return _warn(
+        asset_name=asset_name,
+        message=message,
+        type_info=type_info,
+        log=log,
+        level=level,
+        values=values,
+    )
+
+
+def _warn_multiple(
+    asset_name, type_info="asset", level="ERROR", log=_noop, values={}
+):
+    message = (
+        "[flask-webpack] only one of multiple chunks of {type_info} "
+        "{asset_name} requested"
+    ).format(type_info=type_info, asset_name=asset_name)
+    return _warn(
+        asset_name=asset_name,
+        message=message,
+        type_info=type_info,
+        log=log,
+        level=level,
+        values=values,
+    )
 
 
 class Webpack(object):
-    def __init__(
-        self, app=None, assets_url=None, manifest_path=None, **assets
-    ):
+    def __init__(self, app=None, assets_url=None, manifest_path=None, **assets):
         """
         Internalize the app context and add helpers to the app.
         :param app: the flask app
@@ -113,13 +153,15 @@ class Webpack(object):
         if hasattr(app, "add_template_global"):
             app.add_template_global(self.javascript_tag)
             app.add_template_global(self.stylesheet_tag)
+            app.add_template_global(self.asset_urls_for)
+            # for backwards compatibility
             app.add_template_global(self.asset_url_for)
         else:
             # Flask < 0.10
             ctx = {
                 "javascript_tag": self.javascript_tag,
                 "stylesheet_tag": self.stylesheet_tag,
-                "asset_url_for": self.asset_url_for,
+                "asset_urls_for": self.asset_urls_for,
             }
             app.context_processor(lambda: ctx)
 
@@ -180,31 +222,34 @@ class Webpack(object):
             values=self.assets,
         )
 
-    def javascript_tag(self, *args, **attrs):
+    def javascript_tag(self, *assets, attrs={}, **more_attrs):
         """
         Convenience tag to output 1 or more javascript tags.
 
         :param args: 1 or more javascript file names
-        :return: Script tag(s) containing the asset
+        :param attrs: dict <script> tag attr name-value pairs
+        :param more_attrs: dict more tag attr name-value pairs
+        :return: Script tag(s) with the named attrs containing the named asset
         """
         tags = []
 
-        for arg in args:
-            asset_path = (
-                self.asset_url_for("{}.js".format(arg))
-                or self.asset_url_for(arg)
+        def make_tag(chunk_url):
+            tag_attrs = _markup_kvp({**attrs, **more_attrs})
+            tags.append(
+                '<script src="{}" {}></script>'.format(chunk_url, tag_attrs)
             )
-            if asset_path:
-                tags.append(
-                    '<script src="{}" {}></script>'.format(
-                        asset_path, _markup_kvp(**attrs)
-                    )
-                )
+
+        all_chunk_urls = []
+        for asset in assets:
+            chunk_urls = self.resolve_ext(asset, extensions=[".js", ""])
+            if chunk_urls:
+                all_chunk_urls += chunk_urls
             else:
-                tags.append(self._warn_missing(arg, "script"))
+                tags.append(self._warn_missing(asset, "script"))
+        for_each_unique_chunk(all_chunk_urls, make_tag)
         return Markup("\n".join(tags))
 
-    def stylesheet_tag(self, *assets, **attrs):
+    def stylesheet_tag(self, *assets, attrs={}, **more_attrs):
         """
         Convenience tag to output 1 or more stylesheet tags.
 
@@ -215,28 +260,26 @@ class Webpack(object):
         """
         tags = []
 
+        def make_tag(url):
+            tag_attrs = _markup_kvp({**attrs, **more_attrs})
+            tag = '<link rel="stylesheet" href="{}" {}>'.format(url, tag_attrs)
+            tags.append(tag)
+
+        all_chunk_urls = []
         for asset in assets:
-            asset_path = (
-                # ordered by how frequency of extension occurence.
-                self.asset_url_for("{}.css".format(asset))
-                or self.asset_url_for(asset)
-                or self.asset_url_for("{}.scss".format(asset))
-                or self.asset_url_for("{}.sass".format(asset))
-                or self.asset_url_for("{}.less".format(asset))
-                or self.asset_url_for("{}.styl".format(asset))
+            # ordered by how frequency of extension occurence.
+            chunks = self.resolve_ext(
+                asset, [".css", "", ".scss", ".sass", ".less", ".styl"]
             )
-            if asset_path:
-                tags.append(
-                    '<link rel="stylesheet" href="{0}" {1}>'.format(
-                        asset_path, _markup_kvp(**attrs)
-                    )
-                )
+            if chunks:
+                all_chunk_urls += chunks
             else:
                 tags.append(self._warn_missing(asset, "stylesheet"))
+        for_each_unique_chunk(all_chunk_urls, make_tag)
 
         return Markup("\n".join(tags))
 
-    def asset_url_for(self, asset):
+    def asset_urls_for(self, asset):
         """
         Look up the hashed asset path of a bundle name unless it starts with
         something that resembles a web address. In that case, interpret the
@@ -244,7 +287,7 @@ class Webpack(object):
 
         :param asset: A logical path to an asset
         :type asset: str
-        :return: str asset path or None if not found
+        :return: List[str] a list of string paths or None if not found
         """
         if "//" in asset:
             return asset
@@ -252,4 +295,40 @@ class Webpack(object):
         if asset not in self.assets:
             return None
 
-        return (self.assets_url or "") + self.assets[asset]
+        packed_asset = self.assets[asset]
+        if type(packed_asset) is str:
+            packed_asset = [packed_asset]
+        return [(self.assets_url or "") + chunk for chunk in packed_asset]
+
+    def asset_url_for(self, asset, warn_multiple=True):
+        """Get one url for an asset name.
+
+        :param asset: str the name of the asset.
+        :param warn_multiple: bool whether to warn if multiple chunks retreived.
+
+        :return: Description of returned object.
+        """
+        resolved = self.asset_urls_for(asset)
+        if resolved:
+            if len(resolved) == 1:
+                return resolved[0]
+            elif warn_multiple:
+                _warn_multiple(
+                    asset,
+                    level=self.log_level,
+                    log=self.log,
+                    values=self.assets,
+                )
+
+    def resolve_ext(self, asset, extensions=[""]):
+        """Find the first asset in the manifest
+
+        :param asset: str the start of an asset name
+        :param extensions: List[str] extensions to check
+
+        :return: List[str] the list of chunk urls associated with the asset
+        """
+        for ext in extensions:
+            resolved = self.asset_urls_for(asset + ext)
+            if resolved:
+                return resolved

@@ -131,7 +131,8 @@ def test_js_tag_multiple_kvp():
     Webpack(app, assets_url="/", foo="foo.h4sh3d.js", bar="bar.11a6e2.js")
     with app.app_context():
         rendered = render_template_string(
-            '{{ javascript_tag("foo", "bar", async=True, defer=True) }}'
+            '{{ javascript_tag("foo", "bar",'
+            ' attrs={"async": True}, defer=True) }}'
         )
     expected = (
         '<script src="/foo.h4sh3d.js" async defer></script>\n'
@@ -211,7 +212,7 @@ def test_nested_asset_map():
 
 def test_nested_asset_map_missing_public_path():
     path = os.path.abspath(
-        os.path.join(__dirname, 'nested_asset_map_missing_public_path.json')
+        os.path.join(__dirname, "nested_asset_map_missing_public_path.json")
     )
     app = Flask("test_app")
     app.config["WEBPACK_MANIFEST_PATH"] = path
@@ -219,12 +220,12 @@ def test_nested_asset_map_missing_public_path():
     webpack.init_app(app)
     with app.app_context():
         rendered = render_template_string('{{ asset_url_for("temp.js") }}')
-    assert rendered == '//localhost:8080/temp.js'
+    assert rendered == "//localhost:8080/temp.js"
 
 
 def test_flat_asset_map_renamed_public_path():
     path = os.path.abspath(
-        os.path.join(__dirname, 'flat_asset_map_renamed_public_path.json')
+        os.path.join(__dirname, "flat_asset_map_renamed_public_path.json")
     )
     app = Flask("test_app")
     app.config["WEBPACK_MANIFEST_PATH"] = path
@@ -232,9 +233,7 @@ def test_flat_asset_map_renamed_public_path():
     webpack.init_app(app)
 
     with app.app_context():
-        r1 = render_template_string(
-            '{{ asset_url_for("foo") }}'
-        )
+        r1 = render_template_string('{{ asset_url_for("foo") }}')
         r2 = render_template_string('{{ asset_url_for("bar.js") }}')
     e1 = "//localhost:8080/foo.h4sh3d.js"
     e2 = "//localhost:8080/completely-different.hashed.js"
@@ -273,3 +272,29 @@ def test_flat_asset_map_missing_public_path():
     e2 = '<script src="correct/completely-different.hashed.js" ></script>'
     assert r1 == e1
     assert r2 == e2
+
+
+def test_chunked_asset_map():
+    path = os.path.abspath(
+        os.path.join(__dirname, "flat_chunked_asset_map.json")
+    )
+    app = Flask("test_app")
+    app.config["WEBPACK_MANIFEST_PATH"] = path
+    app.config["WEBPACK_ASSETS_URL"] = "correct/"
+    Webpack(app)
+    with app.app_context():
+        r1 = render_template_string(
+            '{{ javascript_tag("vendor~jquery", defer=True) }}'
+        )
+        r2 = render_template_string(
+            "{{ javascript_tag('foo', attrs={'defer': True}) }}"
+        )
+        r3 = render_template_string(
+            "{{ javascript_tag('bar.js', attrs={'async': True}) }}"
+        )
+    e1 = '<script src="correct/vendor~jquery.ch0nk3d.js" defer></script>'
+    e2 = e1 + '\n<script src="correct/foo.h4sh3d.js" defer></script>'
+    e3 = '<script src="correct/completely-different.hashed.js" async></script>'
+    assert r1 == e1
+    assert r2 == e2
+    assert r3 == e3
