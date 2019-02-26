@@ -131,7 +131,8 @@ def test_js_tag_multiple_kvp():
     Webpack(app, assets_url="/", foo="foo.h4sh3d.js", bar="bar.11a6e2.js")
     with app.app_context():
         rendered = render_template_string(
-            '{{ javascript_tag("foo", "bar", {"async"=True}, defer=True) }}'
+            '{{ javascript_tag("foo", "bar",'
+            ' attrs={"async": True}, defer=True) }}'
         )
     expected = (
         '<script src="/foo.h4sh3d.js" async defer></script>\n'

@@ -24,7 +24,7 @@ def _escape(s):
 def _markup_kvp(_attrs={}, **more_attrs):
     """helper: returns str HTML-style key-value pairs"""
     if type(_attrs) is str:
-        more_attrs['_attrs'] = _attrs
+        more_attrs["_attrs"] = _attrs
         # this is dumb.
     return " ".join(
         key if value is True else '{}="{}"'.format(key, _escape(str(value)))
