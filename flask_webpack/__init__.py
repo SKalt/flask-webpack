@@ -241,7 +241,7 @@ class Webpack(object):
 
         all_chunk_urls = []
         for asset in assets:
-            chunk_urls = self.resolve_ext(asset, extensions=[".js", ""])
+            chunk_urls = self.resolve_ext(asset, extensions=["", ".js"])
             if chunk_urls:
                 all_chunk_urls += chunk_urls
             else:
@@ -269,7 +269,7 @@ class Webpack(object):
         for asset in assets:
             # ordered by how frequency of extension occurence.
             chunks = self.resolve_ext(
-                asset, [".css", "", ".scss", ".sass", ".less", ".styl"]
+                asset, ["", ".css", ".scss", ".sass", ".less", ".styl"]
             )
             if chunks:
                 all_chunk_urls += chunks
