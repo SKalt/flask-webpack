@@ -289,12 +289,42 @@ def test_chunked_asset_map():
         r2 = render_template_string(
             "{{ javascript_tag('foo', attrs={'defer': True}) }}"
         )
-        r3 = render_template_string(
+        r3 = render_template_string(  # TODO: ///
             "{{ javascript_tag('bar.js', attrs={'async': True}) }}"
         )
     e1 = '<script src="correct/vendor~jquery.ch0nk3d.js" defer></script>'
     e2 = e1 + '\n<script src="correct/foo.h4sh3d.js" defer></script>'
-    e3 = '<script src="correct/completely-different.hashed.js" async></script>'
+    e3 = (
+        e1.replace("defer", "async")
+        + '\n<script src="correct/completely-different.hashed.js" async></script>'
+    )
     assert r1 == e1
     assert r2 == e2
     assert r3 == e3
+
+
+def test_chunked_asset_map_deduped():
+    path = os.path.abspath(
+        os.path.join(__dirname, "flat_chunked_asset_map.json")
+    )
+    app = Flask("test_app")
+    app.config["WEBPACK_MANIFEST_PATH"] = path
+    app.config["WEBPACK_ASSETS_URL"] = "correct/"
+    Webpack(app)
+    with app.app_context():
+        # r1, r2 are equivalent: both test that the vendor chunk is deduped
+        r1 = render_template_string("{{ javascript_tag('foo', 'bar') }}")
+        r2 = render_template_string(
+            "{{ javascript_tag('foo') }}\n{{ javascript_tag('bar') }}"
+        )
+        # still, you should be able to duplicate chunks if you need.
+        r3 = render_template_string(
+            "{{ javascript_tag('vendor~jquery', unique=False) }}"
+            "{{ javascript_tag('vendor~jquery', unique=False) }}"
+        )
+    vendor = '<script src="correct/vendor~jquery.ch0nk3d.js" ></script>'
+    foo = '<script src="correct/foo.h4sh3d.js" ></script>'
+    bar = '<script src="correct/completely-different.hashed.js" ></script>'
+    assert r1 == r2
+    assert r1 == "\n".join((vendor, foo, bar))
+    assert r3 == vendor + vendor
