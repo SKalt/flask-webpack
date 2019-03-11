@@ -10,7 +10,7 @@
 
 </p>
 
-Webpack can produce hashed asset bundles ( like `index.bundle.md5h4sh3d.js` ). Flask-Webpack provides global jinja2 templates that look up your your hashed bundles by name in an asset map.
+Webpack can produce hashed asset bundles ( like `index.bundle.md5h4sh3d.js` ).  Flask-Webpack provides global jinja2 templates that look up your your hashed bundles by name in an asset map.
 
 
 Installation
@@ -22,7 +22,7 @@ pip install flask-webpack # from pypi
 pip install git+https://github.com/nickjj/flask-webpack#egg=flask_webpack
 ```
 
-<details><summary>Quickstart</summary>
+<details><summary><b>Quickstart</b></summary>
 
 ```{sh}
   # webpack quickstart
@@ -61,28 +61,52 @@ If you have a webpack entrypoint named ``index.js``, the template will complile 
 ```
 
 Now you can happily tell your frontend proxy to cache that hamburger image for
-an entire year. If you ever change the hamburger, the md5 will change but you
+an entire year.  If you ever change the hamburger, the md5 will change but you
 do not need to change any of your templates because the `asset_url_for`
 tag knows how to look it up.
 </details>
 
-<details><summary>Global template tags</summary>
+<details><summary><b>Global template tags</b></summary>
 
-| tag | results|
-|--|--|
-`asset_url_for(asset_name)` | resolves an asset name. Quotes not included.
-`javascript_tag(*asset_names, **tag_props)` | produces a `<script>` tag for each passed asset name.
-`stylesheet_tag(*asset_names, **tag_props)` | writes out a `<link rel="stylesheet">` tag for each passed asset.
+#### `asset_url_for`
+Signature:
+```python
+def assets_url_for(asset_name: str) -> jinja2.Markup: ...
+```
+resolves the hashed url for an asset name.  Quotes not included.
+
+#### `javascript_tag`
+Signature:
+```python
+def javascript_tag(
+    *assets: str,
+    unique: bool = True,
+    attrs: Dict[str, Union[str, bool, int]] = {},
+    **more_attrs: Union[str, bool, int]
+) -> jinja2.Markup: ...
+```
+produces a `<script>` tag for each passed asset name.  Each tag will have the HTML attributes described in the `attrs` and `more_attrs` dicts.  If you need to duplicate a script, pass `unique=False`.  If you need to use a reserved keyword as a HTML attribute on your script tag, (i.e. `async`, `attrs`, `unique`), put the desired prop in into the `attrs` dict.
+
+#### `stylesheet_tag`
+Signature:
+```python
+def stylesheet_tag(
+    *assets: str,
+    unique: bool = True,
+    attrs: Dict[str, Union[str, bool, int]] = {},
+    **more_attrs: Union[str, bool, int]
+) -> jinja2.Markup: ...
+```
+Writes out a `<link rel="stylesheet">` tag for each passed asset.  Each tag will have the HTML attributes described in the `attrs` and `more_attrs` dicts.  If you need to duplicate a script, pass `unique=False`.  If you need to use a reserved keyword as a HTML attribute on your script tag, (i.e. `async`, `attrs`, `unique`), put the desired prop in into the `attrs` dict.
+
 
 You can view a complete working example in the <a href="./flask_webpack/tests/test_app">test app</a>.
 
 There's also a <a href="https://nickjanetakis.com/blog/manage-your-assets-with-flask-webpack">blog post and short video</a> explaining how to use this extension.
 </details>
 
-<details>
-  <summary><span style="font-size: 20px; font-weight: 600;">Building your asset map</span>
-  </summary>
-Flask-Webpack requires a JSON file `manifest.json` mapping the name of each of your bundles to its hashed equivalent. You can build this manifest file using
+<details><summary><b>Building your asset map</b></summary>
+Flask-Webpack requires a JSON file `manifest.json` mapping the name of each of your bundles to its hashed equivalent.  You can build this manifest file using
 <a
   href="https://www.npmjs.com/package/webpack-manifest-plugin">
   <code>webpack-manifest-plugin</code></a>
@@ -93,7 +117,7 @@ or
 </details>
 
 
-<details><summary>Configuration<span></summary>
+<details><summary><b>Configuration</b></summary>
 
 `Flask-Webpack` resolves its configuration options with this order of priority:
   1. `app.config[OPTION_NAME]` trumps all
@@ -111,7 +135,7 @@ Here are the available configuration options:
 ```
 default: ``None``
 
-**Required:** any valid path to a JSON asset map. An idiomatic location might be  `./dist/manifest.json` relative to your `package.json`.
+**Required:** any valid path to a JSON asset map.  An idiomatic location might be  `./dist/manifest.json` relative to your `package.json`.
 
 ```python
 (
@@ -123,11 +147,11 @@ default: ``None``
 ```
 default: `"/"`
 
-**Optional:** A URL to prepend to your hashed asset names. In production, you can set this to your full domain name or CDN.  In development, you might to point to a [`webpack-dev-server`](https://github.com/webpack/webpack-dev-server) on another port.  You can control this in python switching `os.environ.get("FLASK_ENV") == "development"` or by changing the value of the `publicPath` key in the generation of your asset map.
+**Optional:** A URL to prepend to your hashed asset names.  In production, you can set this to your full domain name or CDN.  In development, you might to point to a [`webpack-dev-server`](https://github.com/webpack/webpack-dev-server) on another port.  You can control this in python switching `os.environ.get("FLASK_ENV") == "development"` or by changing the value of the `publicPath` key in the generation of your asset map.
 
-⚠️ warning: this does not automatically join the URL and your asset name.  You must provide the joining `/`.
+:warning: warning: this does not automatically join the URL and your asset name.  You must provide the joining `/`.
 
-⚠️ warning: prepending a different `asset_url`/`public_path` to your assets may cause them not to work in production `url(./relative/path/to/style/asset)`
+:warning: warning: prepending a different `asset_url`/`public_path` to your assets may cause them not to work in production `url(./relative/path/to/style/asset)`
 
 
 ```python
@@ -135,7 +159,7 @@ app.config.get("WEBPACK_MANIFEST_ASSETS_ONLY")
 ```
 default: ``False``
 
-**Optional:** Assume the manifest file only contains the assets and *not* `"publicPath"` or `"public_path"`. Otherwise, `flask_webpack` will handle both flat asset maps and asset maps with an `"asset"` key.
+**Optional:** Assume the manifest file only contains the assets and *not* `"publicPath"` or `"public_path"`.  Otherwise, `flask_webpack` will handle both flat asset maps and asset maps with an `"asset"` key.
 
 ```python
 (
@@ -161,7 +185,7 @@ if level == "DEBUG":
 
 </details>
 
-<details><summary>Development</summary>
+<details><summary><b>Development<b></summary>
 
 ```sh
 git clone https://github.com/nickjj/flask-webpack.git

@@ -2,7 +2,7 @@ import os
 import json
 
 from flask import current_app
-from jinja2 import Markup
+from jinja2 import Markup, contextfunction
 from werkzeug.routing import BuildError
 from logging import getLevelName
 
@@ -24,8 +24,7 @@ def _escape(s):
 def _markup_kvp(_attrs={}, **more_attrs):
     """helper: returns str HTML-style key-value pairs"""
     if type(_attrs) is str:
-        more_attrs["_attrs"] = _attrs
-        # this is dumb.
+        _attrs = {"_attrs": _attrs}
     return " ".join(
         key if value is True else '{}="{}"'.format(key, _escape(str(value)))
         for key, value in ({**_attrs, **more_attrs}).items()
@@ -33,12 +32,14 @@ def _markup_kvp(_attrs={}, **more_attrs):
     )
 
 
-def for_each_unique_chunk(chunk_urls, callback):
-    used = set()
+def for_each_unique_chunk(ctx, chunk_urls, callback, unique=True):
+    if not hasattr(ctx.eval_ctx, "webpack_included_assets"):
+        ctx.eval_ctx.webpack_included_assets = set()
+    used = ctx.eval_ctx.webpack_included_assets
     for chunk_url in chunk_urls:
-        if chunk_url not in used:
+        if chunk_url not in used or not unique:
+            used.add(chunk_url)
             callback(chunk_url)
-        used.add(chunk_url)
 
 
 def _warn(
@@ -53,10 +54,12 @@ def _warn(
 
     def js_warn(fn, msg):
         msg = msg.replace('"', '\\"')  # escape double qotes for JS safety
-        return '<script>{fn}("{msg}")</script>'.format(fn=fn, msg=msg)
+        return Markup(
+            '<script>{fn}("{msg}")</script>'.format(fn=fn, msg=_escape(msg))
+        )
 
     if level == "DEBUG":
-        return "<!-- {} -->".format(message.replace("-->", ""))
+        return Markup("<!-- {} -->".format(_escape(message.replace("-->", ""))))
     elif level == "INFO":
         return js_warn("console.warn", message)
     elif level == "WARNING":
@@ -96,6 +99,11 @@ def _warn_multiple(
         level=level,
         values=values,
     )
+
+
+# @contextfilter
+# def unique_tags(ctx, tags):
+#     pass
 
 
 class Webpack(object):
@@ -222,12 +230,14 @@ class Webpack(object):
             values=self.assets,
         )
 
-    def javascript_tag(self, *assets, attrs={}, **more_attrs):
+    @contextfunction
+    def javascript_tag(self, ctx, *assets, attrs={}, unique=True, **more_attrs):
         """
         Convenience tag to output 1 or more javascript tags.
 
         :param args: 1 or more javascript file names
         :param attrs: dict <script> tag attr name-value pairs
+        :param unique: dict <script> tag attr name-value pairs
         :param more_attrs: dict more tag attr name-value pairs
         :return: Script tag(s) with the named attrs containing the named asset
         """
@@ -246,10 +256,11 @@ class Webpack(object):
                 all_chunk_urls += chunk_urls
             else:
                 tags.append(self._warn_missing(asset, "script"))
-        for_each_unique_chunk(all_chunk_urls, make_tag)
+        for_each_unique_chunk(ctx, all_chunk_urls, make_tag, unique=unique)
         return Markup("\n".join(tags))
 
-    def stylesheet_tag(self, *assets, attrs={}, **more_attrs):
+    @contextfunction
+    def stylesheet_tag(self, ctx, *assets, unique=True, attrs={}, **more_attrs):
         """
         Convenience tag to output 1 or more stylesheet tags.
 
@@ -259,10 +270,10 @@ class Webpack(object):
             assets
         """
         tags = []
+        tag_attrs = {"rel": "stylesheet", **attrs, **more_attrs}
 
         def make_tag(url):
-            tag_attrs = _markup_kvp({**attrs, **more_attrs})
-            tag = '<link rel="stylesheet" href="{}" {}>'.format(url, tag_attrs)
+            tag = '<link href="{}" {}>'.format(url, _markup_kvp(tag_attrs))
             tags.append(tag)
 
         all_chunk_urls = []
@@ -275,7 +286,7 @@ class Webpack(object):
                 all_chunk_urls += chunks
             else:
                 tags.append(self._warn_missing(asset, "stylesheet"))
-        for_each_unique_chunk(all_chunk_urls, make_tag)
+        for_each_unique_chunk(ctx, all_chunk_urls, make_tag, unique=unique)
 
         return Markup("\n".join(tags))
 
@@ -311,9 +322,9 @@ class Webpack(object):
         resolved = self.asset_urls_for(asset)
         if resolved:
             if len(resolved) == 1:
-                return resolved[0]
+                return Markup(resolved[0])
             elif warn_multiple:
-                _warn_multiple(
+                return _warn_multiple(
                     asset,
                     level=self.log_level,
                     log=self.log,

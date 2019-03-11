@@ -1,6 +1,6 @@
 # import json
 from flask import Flask
-from jinja2 import Markup
+from jinja2 import Markup, Context
 from typing import (
     Callable,
     Union,
@@ -35,7 +35,7 @@ def _warn_missing(
     type_info: str="asset",
     level: str="ERROR",
     log: Callable[[_Whatev], None]=_noop
-) -> str: ...
+) -> Markup: ...
 
 
 class Webpack(object):
@@ -61,13 +61,19 @@ class Webpack(object):
     ) -> None: ...
 
     def javascript_tag(
-        self, *asset: str,
+        self,
+        ctx: Context,
+        *assets: str,
+        unique: bool = True,
         attrs: _MarkupKvp = {},
         **more_attrs: Union[str, bool, int]
     ) -> Markup: ...
 
     def stylesheet_tag(
-        self, *assets: str,
+        self,
+        ctx: Context,
+        *assets: str,
+        unique: bool = True,
         attrs: _MarkupKvp = {},
         **more_attrs: Union[str, bool, int]
     ) -> Markup: ...
@@ -76,7 +82,7 @@ class Webpack(object):
         self,
         asset: str,
         warn_multiple: bool=True
-    ) -> Optional[List[str]]: ...
+    ) -> Optional[Markup]: ...
 
     def asset_urls_for(self, asset: str) -> Optional[List[str]]: ...
 
