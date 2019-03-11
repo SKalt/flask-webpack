@@ -185,7 +185,7 @@ if level == "DEBUG":
 
 </details>
 
-<details><summary><b>Development<b></summary>
+<details><summary><b>Development</b></summary>
 
 ```sh
 git clone https://github.com/nickjj/flask-webpack.git
