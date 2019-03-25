@@ -11,6 +11,14 @@ def _noop(*args, **kwargs):
     pass
 
 
+def merge(*key_value_pairs):
+    return {
+        key: value
+        for kvp in key_value_pairs
+        for key, value in kvp.items()
+    }
+
+
 def _escape(s):
     return (
         s.replace("&", "&amp;")
@@ -27,7 +35,7 @@ def _markup_kvp(_attrs={}, **more_attrs):
         _attrs = {"_attrs": _attrs}
     return " ".join(
         key if value is True else '{}="{}"'.format(key, _escape(str(value)))
-        for key, value in ({**_attrs, **more_attrs}).items()
+        for key, value in merge(_attrs, more_attrs).items()
         if value is not False
     )
 
@@ -244,7 +252,7 @@ class Webpack(object):
         tags = []
 
         def make_tag(chunk_url):
-            tag_attrs = _markup_kvp({**attrs, **more_attrs})
+            tag_attrs = _markup_kvp(merge(attrs, more_attrs))
             tags.append(
                 '<script src="{}" {}></script>'.format(chunk_url, tag_attrs)
             )
@@ -270,7 +278,7 @@ class Webpack(object):
             assets
         """
         tags = []
-        tag_attrs = {"rel": "stylesheet", **attrs, **more_attrs}
+        tag_attrs = merge({"rel": "stylesheet"}, attrs, more_attrs)
 
         def make_tag(url):
             tag = '<link href="{}" {}>'.format(url, _markup_kvp(tag_attrs))
