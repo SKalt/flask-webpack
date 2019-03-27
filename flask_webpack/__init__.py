@@ -11,12 +11,33 @@ def _noop(*args, **kwargs):
     pass
 
 
-def merge(*key_value_pairs):
-    return {
-        key: value
-        for kvp in key_value_pairs
-        for key, value in kvp.items()
-    }
+def _merge(*key_value_pairs):
+    return {key: value for kvp in key_value_pairs for key, value in kvp.items()}
+
+
+def _get_attrs(attrs):
+    """hoist the keys and value of a nested "attrs" dict to the top level.
+    This is useful for passing duplicate kwargs or avoiding reserved keywords
+    by passing them as string keys.
+    This hositing functionality could have been written as
+        fn(attrs={}, **more_attrs): return {**attrs, **more_attrs}
+    but is included for python 2.7 compatibility.
+
+    Args:
+        attrs (nested dict): HTML tag attributes
+
+    Returns:
+        dict: unnested HTML tag attributes.
+
+    Examples:
+    >>> _get_attrs(dict(attrs={'async': True})) # throws in python 3.7
+    {'async', true}
+    """
+    if "attrs" in attrs:
+        _attrs = attrs.pop("attrs", None)
+        if type(_attrs) is dict:
+            return _merge(attrs, _attrs)
+    return attrs
 
 
 def _escape(s):
@@ -29,13 +50,12 @@ def _escape(s):
     )
 
 
-def _markup_kvp(_attrs={}, **more_attrs):
+def _markup_kvp(**attrs):
     """helper: returns str HTML-style key-value pairs"""
-    if type(_attrs) is str:
-        _attrs = {"_attrs": _attrs}
+    attrs = _get_attrs(attrs)
     return " ".join(
         key if value is True else '{}="{}"'.format(key, _escape(str(value)))
-        for key, value in merge(_attrs, more_attrs).items()
+        for key, value in attrs.items()
         if value is not False
     )
 
@@ -107,11 +127,6 @@ def _warn_multiple(
         level=level,
         values=values,
     )
-
-
-# @contextfilter
-# def unique_tags(ctx, tags):
-#     pass
 
 
 class Webpack(object):
@@ -239,20 +254,21 @@ class Webpack(object):
         )
 
     @contextfunction
-    def javascript_tag(self, ctx, *assets, attrs={}, unique=True, **more_attrs):
+    def javascript_tag(self, ctx, *assets, **attrs):
         """
         Convenience tag to output 1 or more javascript tags.
 
         :param args: 1 or more javascript file names
+        :param unique: bool whether the tag should describe a unique resource
         :param attrs: dict <script> tag attr name-value pairs
-        :param unique: dict <script> tag attr name-value pairs
-        :param more_attrs: dict more tag attr name-value pairs
         :return: Script tag(s) with the named attrs containing the named asset
         """
+        unique = attrs.pop("unique", True)
+        attrs = _get_attrs(attrs)
         tags = []
 
         def make_tag(chunk_url):
-            tag_attrs = _markup_kvp(merge(attrs, more_attrs))
+            tag_attrs = _markup_kvp(**attrs)
             tags.append(
                 '<script src="{}" {}></script>'.format(chunk_url, tag_attrs)
             )
@@ -268,20 +284,22 @@ class Webpack(object):
         return Markup("\n".join(tags))
 
     @contextfunction
-    def stylesheet_tag(self, ctx, *assets, unique=True, attrs={}, **more_attrs):
+    def stylesheet_tag(self, ctx, *assets, **attrs):
         """
         Convenience tag to output 1 or more stylesheet tags.
 
         :param assets: 1 or more names of bundled stylesheets.
+        :param unique: bool whether the tag should describe a unique resource
         :param attrs: properties to be applied to all the output html elements
         :return: Markdown <link rel="stylesheet" .../>s containing the named
             assets
         """
         tags = []
-        tag_attrs = merge({"rel": "stylesheet"}, attrs, more_attrs)
+        unique = attrs.pop("unique", True)
+        attrs = _merge({"rel": "stylesheet"}, _get_attrs(attrs))
 
         def make_tag(url):
-            tag = '<link href="{}" {}>'.format(url, _markup_kvp(tag_attrs))
+            tag = '<link href="{}" {}>'.format(url, _markup_kvp(**attrs))
             tags.append(tag)
 
         all_chunk_urls = []

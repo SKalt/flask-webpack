@@ -3,7 +3,7 @@ import os
 import sys
 from flask import Flask, render_template_string
 from werkzeug.routing import BuildError
-from flask_webpack import _markup_kvp, _warn_missing, Webpack
+from flask_webpack import _markup_kvp, _get_attrs, _warn_missing, Webpack
 from lxml.etree import fromstring, XMLParser
 
 # constants
@@ -25,6 +25,15 @@ def check_attrib(rendered, expected):
             expected_props = parse(target)
             actual_props = parse(actual)
             assert expected_props == actual_props
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "test_input, expected",
+    [({"attrs": {"async": True}, "ff": "bb"}, {"async": True, "ff": "bb"})],
+)
+def test_attr_resolution(test_input, expected):
+    assert _get_attrs(test_input) == expected
 
 
 @pytest.mark.parametrize(
