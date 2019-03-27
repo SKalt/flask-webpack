@@ -1,6 +1,7 @@
 # import json
 from flask import Flask
-from jinja2 import Markup, Context
+from jinja2 import Markup
+from jinja2.runtime import Context
 from typing import (
     Callable,
     Union,
@@ -11,9 +12,9 @@ from typing import (
     # TypeVar,
 )
 
-_Whatev = Union[None, str, bytes, int]
+_Whatev = Union[None, str, bytes, int, float]
 # _MarkupValue = Union[str, bool, int]
-_MarkupKvp = Dict[str, Union[str, bool, int]]
+_MarkupKvp = Dict[str, Union[str, bool, int, float]]
 
 def _escape(s: str) -> str: ...
 
@@ -57,7 +58,7 @@ class Webpack(object):
     def _warn_missing(
         self,
         missing: str,
-        type_info: str="asset"
+        type_info: str = "asset"
     ) -> None: ...
 
     def javascript_tag(
@@ -66,7 +67,7 @@ class Webpack(object):
         *assets: str,
         unique: bool = True,
         attrs: _MarkupKvp = {},
-        **more_attrs: Union[str, bool, int]
+        **more_attrs: Union[str, bool, int, float]
     ) -> Markup: ...
 
     def stylesheet_tag(

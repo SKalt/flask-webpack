@@ -31,7 +31,7 @@ def _get_attrs(attrs):
 
     Examples:
     >>> _get_attrs(dict(attrs={'async': True})) # throws in python 3.7
-    {'async', true}
+    {'async': true}
     """
     if "attrs" in attrs:
         _attrs = attrs.pop("attrs", None)
@@ -333,7 +333,7 @@ class Webpack(object):
             return None
 
         packed_asset = self.assets[asset]
-        if type(packed_asset) is str:
+        if type(packed_asset) is not list and type(packed_asset) is not tuple:
             packed_asset = [packed_asset]
         return [(self.assets_url or "") + chunk for chunk in packed_asset]
 
