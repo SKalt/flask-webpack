@@ -130,7 +130,14 @@ def _warn_multiple(
 
 
 class Webpack(object):
-    def __init__(self, app=None, assets_url=None, manifest_path=None, **assets):
+    def __init__(
+        self,
+        app=None,
+        assets_url="",
+        log_level="ERROR",
+        manifest_path=None,
+        **assets
+    ):
         """
         Internalize the app context and add helpers to the app.
         :param app: the flask app
@@ -142,6 +149,7 @@ class Webpack(object):
         self.assets_url = assets_url or ""
         self.assets = assets
         self.manifest_path = manifest_path
+        self.log_level = log_level or "ERROR"
         if app is not None:
             self.init_app(app)
         else:
@@ -161,8 +169,11 @@ class Webpack(object):
             or os.environ.get("FLASK_DEBUG")
             or os.environ.get("FLASK_ENV") == "development"
         )
-        log_level = app.config.get(
-            "WEBPACK_LOG_LEVEL", "DEBUG" if debug else "ERROR"
+        log_level = (
+            app.config.get("WEBPACK_LOG_LEVEL")
+            or ("DEBUG" if debug else None)
+            or self.log_level
+            or "ERROR"
         )
 
         def log(message):
