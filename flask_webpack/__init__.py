@@ -1,21 +1,28 @@
 import os
 import json
 
-from flask import current_app
+from flask import current_app, Flask
 from jinja2 import Markup, contextfunction
 from werkzeug.routing import BuildError
 from logging import getLevelName
 
+from typing import Any, Callable, Dict, List, Optional, Union, cast
 
-def _noop(*args, **kwargs):
+JsonPrimitive = Union[None, str, bytes, int, float]
+JsonValue = Dict[str, JsonPrimitive]
+MarkupKvp = Dict[str, Union[str, bool, int, float]]
+ChunkDef = str
+
+
+def _noop(*args: Any, **kwargs: Any) -> None:
     pass
 
 
-def _merge(*key_value_pairs):
+def _merge(*key_value_pairs: Dict[str, JsonPrimitive]):
     return {key: value for kvp in key_value_pairs for key, value in kvp.items()}
 
 
-def _get_attrs(attrs):
+def _get_attrs(attrs: Dict[str, JsonValue]) -> JsonValue:
     """hoist the keys and value of a nested "attrs" dict to the top level.
     This is useful for passing duplicate kwargs or avoiding reserved keywords
     by passing them as string keys.
@@ -30,17 +37,20 @@ def _get_attrs(attrs):
         dict: unnested HTML tag attributes.
 
     Examples:
-    >>> _get_attrs(dict(attrs={'async': True})) # throws in python 3.7
+    >>> _get_attrs(dict(attrs={'async': True})) # dict(async=1) throws in python 3.7
     {'async': true}
     """
-    if "attrs" in attrs:
-        _attrs = attrs.pop("attrs", None)
-        if type(_attrs) is dict:
-            return _merge(attrs, _attrs)
-    return attrs
+    _attrs = attrs.pop("attrs", {})  # type: Union[JsonValue, JsonPrimitive]
+    _mutated = cast(JsonValue, attrs)  # type: JsonValue
+    if type(_attrs) is dict:
+        return _merge(_mutated, cast(JsonValue, _attrs))
+    elif type(_attrs) in (str, int, float, bool):
+        return _merge(_mutated, {"attrs": cast(JsonPrimitive, _attrs)})
+    # throw error here
+    return _mutated
 
 
-def _escape(s):
+def _escape(s: str) -> str:
     return (
         s.replace("&", "&amp;")
         .replace("<", "&lt;")
@@ -50,34 +60,38 @@ def _escape(s):
     )
 
 
-def _markup_kvp(**attrs):
+def _markup_kvp(**attrs: JsonValue) -> str:
     """helper: returns str HTML-style key-value pairs"""
-    attrs = _get_attrs(attrs)
     return " ".join(
         key if value is True else '{}="{}"'.format(key, _escape(str(value)))
-        for key, value in attrs.items()
+        for key, value in _get_attrs(attrs).items()
         if value is not False
     )
 
 
-def for_each_unique_chunk(ctx, chunk_urls, callback, unique=True):
+def for_each_unique_chunk(
+    ctx,
+    chunks: List[ChunkDef],
+    callback: Callable[[ChunkDef], Any],
+    unique: bool = True,
+) -> None:
     if not hasattr(ctx.eval_ctx, "webpack_included_assets"):
         ctx.eval_ctx.webpack_included_assets = set()
-    used = ctx.eval_ctx.webpack_included_assets
-    for chunk_url in chunk_urls:
-        if chunk_url not in used or not unique:
-            used.add(chunk_url)
-            callback(chunk_url)
+    used = ctx.eval_ctx.webpack_included_assets  # type: set
+    for chunk in chunks:
+        if chunk not in used or not unique:
+            used.add(chunk)
+            callback(chunk)
 
 
 def _warn(
-    asset_name="",
-    message="",
-    type_info="asset",
-    level="ERROR",
-    log=_noop,
-    values={},
-):
+    asset_name: str = "",
+    message: str = "",
+    type_info: str = "asset",
+    level: str = "ERROR",
+    log: Callable[[str], None] = _noop,
+    values: Dict = {},
+) -> Markup:
     log(message)
 
     def js_warn(fn, msg):
@@ -94,11 +108,16 @@ def _warn(
         return js_warn("console.error", message)
 
     raise BuildError(asset_name, values, (type_info,))
+    return Markup("")  # never reached; only for typing
 
 
 def _warn_missing(
-    asset_name, type_info="asset", level="ERROR", log=_noop, values={}
-):
+    asset_name: str,
+    type_info: str = "asset",
+    level: str = "ERROR",
+    log: Callable = _noop,
+    values: Dict = {},
+) -> Markup:
     message = "[flask-webpack] missing {type_info} {missing}".format(
         type_info=type_info, missing=asset_name
     )
@@ -113,8 +132,12 @@ def _warn_missing(
 
 
 def _warn_multiple(
-    asset_name, type_info="asset", level="ERROR", log=_noop, values={}
-):
+    asset_name: str,
+    type_info: str = "asset",
+    level: str = "ERROR",
+    log: Callable = _noop,
+    values: Dict = {},
+) -> Markup:
     message = (
         "[flask-webpack] only one of multiple chunks of {type_info} "
         "{asset_name} requested"
@@ -132,11 +155,11 @@ def _warn_multiple(
 class Webpack(object):
     def __init__(
         self,
-        app=None,
-        assets_url="",
-        log_level="ERROR",
-        manifest_path=None,
-        **assets
+        app: Flask = None,
+        assets_url: str = "",
+        log_level: str = "ERROR",
+        manifest_path: str = None,
+        **assets: ChunkDef
     ):
         """
         Internalize the app context and add helpers to the app.
@@ -154,9 +177,9 @@ class Webpack(object):
             self.init_app(app)
         else:
             self.log_level = "ERROR"
-            self.log = _noop
+            self.log = cast(Callable[[str], None], _noop)
 
-    def init_app(self, app):
+    def init_app(self, app: Flask) -> None:
         """
         Mutate the application passed in as explained here:
         http://flask.pocoo.org/docs/latest/extensiondev/
@@ -176,7 +199,7 @@ class Webpack(object):
             or "ERROR"
         )
 
-        def log(message):
+        def log(message: str) -> None:
             app.logger.log(getLevelName(log_level), message)
 
         if log_level:
@@ -207,7 +230,7 @@ class Webpack(object):
             }
             app.context_processor(lambda: ctx)
 
-    def _set_asset_paths(self, app):
+    def _set_asset_paths(self, app: Flask):
         """
         Read in the manifest.json file which acts as a manifest for assets.
         This allows us to get the asset path as well as hashed names.
@@ -242,7 +265,7 @@ class Webpack(object):
                 if self.log_level == "ERROR":
                     raise RuntimeError(message)
 
-    def _refresh_webpack_stats(self):
+    def _refresh_webpack_stats(self) -> None:
         """
         Refresh the webpack stats so we get the latest version. It's a good
         idea to only use this in development mode.
@@ -251,7 +274,7 @@ class Webpack(object):
         """
         self._set_asset_paths(current_app)
 
-    def _warn_missing(self, missing, type_info="asset"):
+    def _warn_missing(self, missing: str, type_info: str = "asset") -> Markup:
         """
         :param missing: the str asset name that was not found in self.assets
         :param type_info: the type of asset that is missing (e.g. "script").
@@ -265,7 +288,9 @@ class Webpack(object):
         )
 
     @contextfunction
-    def javascript_tag(self, ctx, *assets, **attrs):
+    def javascript_tag(
+        self, ctx, *assets: ChunkDef, unique: bool = True, **attrs: JsonValue
+    ) -> Markup:
         """
         Convenience tag to output 1 or more javascript tags.
 
@@ -274,17 +299,16 @@ class Webpack(object):
         :param attrs: dict <script> tag attr name-value pairs
         :return: Script tag(s) with the named attrs containing the named asset
         """
-        unique = attrs.pop("unique", True)
-        attrs = _get_attrs(attrs)
+        _attrs = _get_attrs(attrs)
         tags = []
 
         def make_tag(chunk_url):
-            tag_attrs = _markup_kvp(**attrs)
+            tag_attrs = _markup_kvp(**_attrs)  # type: str
             tags.append(
                 '<script src="{}" {}></script>'.format(chunk_url, tag_attrs)
             )
 
-        all_chunk_urls = []
+        all_chunk_urls = []  # type: List[ChunkDef]
         for asset in assets:
             chunk_urls = self.resolve_ext(asset, extensions=["", ".js"])
             if chunk_urls:
@@ -368,7 +392,7 @@ class Webpack(object):
                     values=self.assets,
                 )
 
-    def resolve_ext(self, asset, extensions=[""]):
+    def resolve_ext(self, asset: ChunkDef, extensions=[""]) -> ChunkDef:
         """Find the first asset in the manifest
 
         :param asset: str the start of an asset name
@@ -380,3 +404,4 @@ class Webpack(object):
             resolved = self.asset_urls_for(asset + ext)
             if resolved:
                 return resolved
+        return ""
