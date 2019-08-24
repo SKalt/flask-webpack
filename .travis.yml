@@ -5,16 +5,21 @@ python:
   - 3.6
   - 3.7
   - 3.8-dev
+env:
+  - FLASK_VERSION=0.12
+  - FLASK_VERSION=1.0
+  - FLASK_VERSION=1.1
 
 before_install:
-  - pip install -r requirements/ci_common.txt
-  - if [[ $TRAVIS_PYTHON_VERSION == '3.6' ]]; then pip install -r requirements/ci_modern.txt; fi
+  - pip install --upgrade flit
+  - pip install "Flask==$FLASK_VERSION"
 
 install:
-  - pip install .
+  - flit install
 
 script:
-  # run unit tests in all environments
+  # run unit tests in all environments. Runs least -> most important.
+  # TODO: parallelize
   - pytest ./tests/unit.py ./tests/test_app_wp1/tests
   - mypy flask_webpack
   - black --check
