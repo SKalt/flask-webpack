@@ -1,9 +1,9 @@
 from flask import Flask, render_template
 from werkzeug.serving import run_simple
 
-from flask_webpack import Webpack
+from flask_asset_map import AssetMap
 
-webpack = Webpack()
+asset_map = AssetMap()
 
 
 def create_app(settings_override=None):
@@ -16,14 +16,14 @@ def create_app(settings_override=None):
     """
     app = Flask(__name__)
 
-    params = {"DEBUG": True, "WEBPACK_MANIFEST_PATH": "./build/manifest.json"}
+    params = {"DEBUG": True, "ASSET_MAP_PATH": "./build/manifest.json"}
 
     app.config.update(params)
 
     if settings_override:
         app.config.update(settings_override)
 
-    webpack.init_app(app)
+    asset_map.init_app(app)
 
     return app
 

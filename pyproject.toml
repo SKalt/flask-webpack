@@ -6,8 +6,8 @@ build-backend = "flit.buildapi"
 [tool.black] # use black defaults
 
 [tool.flit.metadata]
-  module = "flask_webpack" # "flask_asset_map"
-  dist-name = "flask-webpack" # "flask-asset-map"
+  module = "flask_asset_map"
+  dist-name = "flask-asset-map"
   author = "Steven Kalt"
   author-email = "kalt.steven@gmail.com"
   home-page = "https://github.com/skalt/flask_asset_map"

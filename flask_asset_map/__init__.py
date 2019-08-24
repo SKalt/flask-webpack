@@ -78,9 +78,9 @@ def for_each_unique_chunk(
     callback: Callable[[ChunkDef], Any],
     unique: bool = True,
 ) -> None:
-    if not hasattr(ctx.eval_ctx, "webpack_included_assets"):
-        ctx.eval_ctx.webpack_included_assets = set()
-    used = ctx.eval_ctx.webpack_included_assets  # type: set
+    if not hasattr(ctx.eval_ctx, "included_assets"):
+        ctx.eval_ctx.included_assets = set()
+    used = ctx.eval_ctx.included_assets  # type: set
     for chunk in chunks:
         if chunk not in used or not unique:
             used.add(chunk)
@@ -121,7 +121,7 @@ def _warn_missing(
     log: Callable = _noop,
     values: Dict = {},
 ) -> Markup:
-    message = "[flask-webpack] missing {type_info} {missing}".format(
+    message = "[flask-asset-map] missing {type_info} {missing}".format(
         type_info=type_info, missing=asset_name
     )
     return _warn(
@@ -142,7 +142,7 @@ def _warn_multiple(
     values: Dict = {},
 ) -> Markup:
     message = (
-        "[flask-webpack] only one of multiple chunks of {type_info} "
+        "[flask-asset-map] only one of multiple chunks of {type_info} "
         "{asset_name} requested"
     ).format(type_info=type_info, asset_name=asset_name)
     return _warn(
@@ -155,13 +155,13 @@ def _warn_multiple(
     )
 
 
-class Webpack(object):
+class AssetMap(object):
     def __init__(
         self,
         app: Flask = None,
         assets_url: str = "",
         log_level: str = "ERROR",
-        manifest_path: str = None,
+        asset_map_path: str = None,
         **assets: ChunkDef
     ):
         """
@@ -174,7 +174,7 @@ class Webpack(object):
         self.app = app
         self.assets_url = assets_url or ""
         self.assets = assets
-        self.manifest_path = manifest_path
+        self.asset_map_path = asset_map_path
         self.log_level = log_level or "ERROR"
         if app is not None:
             self.init_app(app)
@@ -196,7 +196,7 @@ class Webpack(object):
             or os.environ.get("FLASK_ENV") == "development"
         )
         log_level = (
-            app.config.get("WEBPACK_LOG_LEVEL")
+            app.config.get("ASEET_MAP_LOG_LEVEL")
             or ("DEBUG" if debug else None)
             or self.log_level
             or "ERROR"
@@ -210,13 +210,13 @@ class Webpack(object):
             self.log = log
 
         # Setup a few sane defaults
-        app.config.setdefault("WEBPACK_ASSETS_URL", None)
+        app.config.setdefault("ASSETS_URL", None)
         self._set_asset_paths(app)
 
-        # We only want to refresh the webpack stats in development mode,
+        # We only want to refresh the asset map in development mode,
         # not everyone sets this setting, so let's assume it's production.
         if debug:
-            app.before_request(self._refresh_webpack_stats)
+            app.before_request(self._refresh_asset_map)
 
         if hasattr(app, "add_template_global"):
             app.add_template_global(self.javascript_tag)
@@ -241,38 +241,34 @@ class Webpack(object):
         :param app: Flask application
         :return: None
         """
-        webpack_stats = app.config.get(
-            "WEBPACK_MANIFEST_PATH", self.manifest_path
-        )
-        if webpack_stats is None:
-            self.log("[Flask-Webpack] 'WEBPACK_MANIFEST_PATH' is not set")
+        asset_map_path = app.config.get("ASSET_MAP_PATH", self.asset_map_path)
+        if asset_map_path is None:
+            self.log("[flask-asset-map] 'asset_map_path' is not set")
         else:
             try:
-                with app.open_resource(webpack_stats, "r") as stats_json:
-                    stats = json.load(stats_json)
+                with app.open_resource(asset_map_path, "r") as asset_map_json:
+                    asset_map = json.load(asset_map_json)
 
                 self.assets_url = (
-                    app.config.get("WEBPACK_ASSETS_URL")
-                    or stats.get("publicPath")
-                    or stats.get("public_path")
+                    app.config.get("ASSETS_URL")
+                    or asset_map.get("publicPath")
+                    or asset_map.get("public_path")
                     or self.assets_url
                     or ""
                 )
-                self.assets = stats.get("assets") or stats
+                self.assets = asset_map.get("assets") or asset_map
             except IOError:
                 message = (
-                    "[Flask-Webpack] WEBPACK_MANIFEST_PATH='{}' must point to"
+                    "[flask-asset-map] ASSET_MAP_PATH='{}' must point to"
                     " a valid json file."
-                ).format(webpack_stats)
+                ).format(asset_map_path)
                 self.log(message)
                 if self.log_level == "ERROR":
                     raise RuntimeError(message)
 
-    def _refresh_webpack_stats(self) -> None:
+    def _refresh_asset_map(self) -> None:
         """
-        Refresh the webpack stats so we get the latest version. It's a good
-        idea to only use this in development mode.
-
+        Refresh the asset map. Only use this in development mode.
         :return: None
         """
         self._set_asset_paths(current_app)

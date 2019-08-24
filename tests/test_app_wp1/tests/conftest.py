@@ -14,7 +14,7 @@ def app():
         "DEBUG": False,
         "TESTING": True,
         "SERVER_NAME": "localhost:5000",
-        "WEBPACK_ASSETS_URL": "https://your.domain_or_asset_cdn.com/assets/",
+        "ASSETS_URL": "https://your.domain_or_asset_cdn.com/assets/",
     }
 
     _app = create_app(settings_override=params)
