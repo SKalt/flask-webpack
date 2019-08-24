@@ -1,3 +1,27 @@
 [build-system]
-# Minimum requirements for the build system to execute.
-requires = ["setuptools", "wheel"]  # PEP 508 specifications.
+# PEP 508 Minimum requirements for the build system to execute.
+requires = ["flit"]
+build-backend = "flit.buildapi"
+
+[tool.black] # use black defaults
+
+[tool.flit.metadata]
+  module = "flask_webpack" # "flask_asset_map"
+  dist-name = "flask-webpack" # "flask-asset-map"
+  author = "Steven Kalt"
+  author-email = "kalt.steven@gmail.com"
+  home-page = "https://github.com/skalt/flask_asset_map"
+  license = "GPLv3"
+  description-file = "README.md"
+  requires-python = "~=3.5" # solely for the type signatures
+  keywords = "flask webpack rollup parcel assets map"
+  classifiers = [
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Framework :: Flask",
+    "Environment :: Web Environment",
+  ]
+
+[tool.flit.metadata.requires-extra]
+  test = ["pytest >= 5"]
+  doc = ["sphinx"]
