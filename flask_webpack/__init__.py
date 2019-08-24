@@ -1,3 +1,6 @@
+"""jinja2 helpers to include processed files using the names of source files.
+"""
+__version__ = "0.0.1"
 import os
 import json
 
@@ -6,7 +9,7 @@ from jinja2 import Markup, contextfunction
 from werkzeug.routing import BuildError
 from logging import getLevelName
 
-from typing import Any, Callable, Dict, List, Optional, Union, cast
+from typing import Any, Callable, Dict, List, Union, cast
 
 JsonPrimitive = Union[None, str, bytes, int, float]
 JsonValue = Dict[str, JsonPrimitive]
