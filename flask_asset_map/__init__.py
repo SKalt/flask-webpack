@@ -196,7 +196,7 @@ class AssetMap(object):
             or os.environ.get("FLASK_ENV") == "development"
         )
         log_level = (
-            app.config.get("ASEET_MAP_LOG_LEVEL")
+            app.config.get("ASSET_MAP_LOG_LEVEL")
             or ("DEBUG" if debug else None)
             or self.log_level
             or "ERROR"

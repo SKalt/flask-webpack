@@ -27,7 +27,6 @@ def check_attrib(rendered, expected):
             assert expected_props == actual_props
 
 
-@pytest.mark.unit
 @pytest.mark.parametrize(
     "test_input, expected",
     [({"attrs": {"async": True}, "ff": "bb"}, {"async": True, "ff": "bb"})],
@@ -196,7 +195,7 @@ def test_nested_asset_map():
         os.path.join(__dirname, "test_app_wp1", "build", "manifest.json")
     )
     app = Flask("test_app")
-    app.config["ASSET_MAP_LOG_LEVEL"] = path
+    app.config["ASSET_MAP_PATH"] = path
     AssetMap(app)
     with app.app_context():
         r1 = render_template_string(
